@@ -8,7 +8,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 
 //Register MongoDB
-var connectionString = builder.Configuration.GetValue<string>("MongoDbSettings:ConnectionString");
+var connectionString = builder.Configuration.GetValue<string>("MonggoDbSettings:ConnectionString");
 var settings = MongoClientSettings.FromUrl(new MongoUrl(connectionString));
 settings.SslSettings = new SslSettings() { EnabledSslProtocols = SslProtocols.Tls12 };
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(settings));

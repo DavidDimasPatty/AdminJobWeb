@@ -1,8 +1,12 @@
-﻿namespace AdminJobWeb.Models.Account
+﻿using MongoDB.Bson.Serialization.Attributes;
+
+namespace AdminJobWeb.Models.Account
 {
     public class admin
     {
-        public Object _id { get; set; }
+        [BsonId]
+        [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
+        public string _id { get; set; }
         public string username { get; set; }
         public string password { get; set; }
         public string email { get; set; }
