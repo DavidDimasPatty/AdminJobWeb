@@ -10,7 +10,19 @@ builder.Services.AddHttpContextAccessor();
 //Register MongoDB
 var connectionString = builder.Configuration.GetValue<string>("MonggoDBSettings:ConnectionString");
 builder.Services.AddSingleton<IMongoClient>(new MongoClient(connectionString));
+
+// required for session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; 
+});
+
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -24,6 +36,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthorization();
 

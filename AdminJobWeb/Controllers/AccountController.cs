@@ -56,7 +56,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>");
+                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
             var filter = Builders<admin>.Filter.Eq(p => p.username, username);
@@ -71,7 +71,7 @@ namespace AdminJobWeb.Controllers
                     {
                         var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1);
                         await _adminCollection.UpdateOneAsync(filter, updateWrongPassword);
-                        return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>");
+                        return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
                     }
                 }
             }
@@ -103,7 +103,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>");
+                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
             var key = GenerateRandomKey();
@@ -146,7 +146,7 @@ namespace AdminJobWeb.Controllers
                 Credentials = new NetworkCredential(emailClient, appPass)
             };
 
-            using (var message = new MailMessage("AdminYukKerja", admin.email)
+            using (var message = new MailMessage(emailClient, admin.email)
             {
                 Subject = subject,
                 Body = body,
@@ -179,7 +179,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>");
+                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
             ViewBag.username = username;
@@ -192,7 +192,7 @@ namespace AdminJobWeb.Controllers
         {
             if (password != passwordRet)
             {
-                return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>");
+                return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>","text/html");
             }
 
             var admin = await _adminCollection
@@ -201,7 +201,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>");
+                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
             byte[] passwordSalt = [];
