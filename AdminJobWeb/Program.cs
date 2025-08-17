@@ -1,4 +1,4 @@
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,11 +8,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 
 //Register MongoDB
-var connectionString = builder.Configuration.GetValue<string>("MonggoDbSettings:ConnectionString");
-var settings = MongoClientSettings.FromUrl(new MongoUrl(connectionString));
-settings.SslSettings = new SslSettings() { EnabledSslProtocols = SslProtocols.Tls12 };
-builder.Services.AddSingleton<IMongoClient>(new MongoClient(settings));
-
+var connectionString = builder.Configuration.GetValue<string>("MonggoDBSettings:ConnectionString");
+builder.Services.AddSingleton<IMongoClient>(new MongoClient(connectionString));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -32,6 +29,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Index}/{id?}");
 
 app.Run();
