@@ -195,11 +195,15 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
+                _tracelogUser.WriteLog($"User : {username}, User Tidak Ditemukan!");
                 return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
             if (admin.addTime.AddMinutes(15) < DateTime.Now)
+            {
+                _tracelogUser.WriteLog($"User : {username}, Link Expired!");
                 return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
+            }
 
             ViewBag.username = username;
             ViewBag.key = key;
@@ -213,6 +217,7 @@ namespace AdminJobWeb.Controllers
         {
             if (password != passwordRet)
             {
+                _tracelogUser.WriteLog($"User : {username}, Password Tidak Sama!");
                 return Content($"<script>alert('Password Tidak Sama!');window.location.href='/User/CreateNewPassword?username={username}&key={key}'</script>", "text/html");
             }
 
@@ -222,6 +227,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
+                _tracelogUser.WriteLog($"User : {username}, User Tidak Ditemukan!");
                 return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
@@ -237,6 +243,7 @@ namespace AdminJobWeb.Controllers
             var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt);
             var result = await _adminCollection.UpdateOneAsync(filter, update);
 
+            _tracelogUser.WriteLog($"User : {username}, Berhasil Create Password");
             return Content("<script>alert('Berhasil Create Password!');window.location.href='/Account/Index'</script>", "text/html");
         }
     }
