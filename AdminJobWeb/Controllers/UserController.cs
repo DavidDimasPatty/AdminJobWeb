@@ -85,7 +85,76 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogUser.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+            }
+        }
+
+        [HttpGet]
+        public IActionResult CreateAdmin()
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (string.IsNullOrEmpty(adminLogin) || HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            return PartialView("_Partials/_ModalCreate");
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> CreateAdmin([FromForm] admin dataObj)
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (string.IsNullOrEmpty(adminLogin) || HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+            try
+            {
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Create New Admin");
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Hit Database Admin");
+
+                var existingAdmin = await _adminCollection
+                    .Find(Builders<admin>.Filter.Eq(p => p.username, dataObj.username))
+                    .FirstOrDefaultAsync();
+
+                // Input validation
+                if (string.IsNullOrEmpty(dataObj.username) || string.IsNullOrEmpty(dataObj.email))
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Data Tidak Boleh Kosong!");
+                    return Content("<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                if (existingAdmin != null)
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Username Sudah Ada!");
+                    return Content("<script>alert('Username Sudah Ada!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                if (!string.IsNullOrEmpty(dataObj.email) && !dataObj.email.Contains("@"))
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Email Tidak Valid!");
+                    return Content("<script>alert('Email Tidak Valid!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                dataObj.loginCount = 0;
+                dataObj.roleAdmin = 1;
+                dataObj.statusAccount = "Inactive";
+                dataObj.lastLogin = DateTime.MinValue;
+                dataObj.addTime = DateTime.Now;
+                dataObj.updateTime = DateTime.Now;
+
+                await _adminCollection.InsertOneAsync(dataObj);
+
+                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Create New User {dataObj.username}");
+                return Content("<script>alert('Berhasil Create New User!');window.location.href='/User/Index'</script>", "text/html");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                _tracelogUser.WriteLog($"User : {adminLogin}, Failed Create New User, Reason : {e.Message}");
+                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
             }
         }
 
@@ -240,7 +309,7 @@ namespace AdminJobWeb.Controllers
             }
 
             var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-            var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt);
+            var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt).Set(p => p.statusAccount, "Active");
             var result = await _adminCollection.UpdateOneAsync(filter, update);
 
             _tracelogUser.WriteLog($"User : {username}, Berhasil Create Password");

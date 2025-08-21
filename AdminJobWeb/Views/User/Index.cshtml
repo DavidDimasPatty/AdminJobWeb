@@ -4,60 +4,83 @@
 }
 
 <div class="card">
-    <h5 class="card-header">Administrator List</h5>
-    <div class="table-responsive text-nowrap">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody class="table-border-bottom-0">
-                @{
-                    var i = 1;
-                    foreach (var item in Model)
-                    {
-                        <tr>
-                            <td>@i</td>
-                            <td>@item.username</td>
-                            <td>@item.email</td>
-                            <td>@item.roleAdmin</td>
-                            <td>
-                                @if (item.statusAccount == "Active")
-                                {
-                                    <span class="badge bg-label-success me-1">Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-label-danger me-1">Blocked</span>
-                                }
-                            </td>
-                            <td>
-                                @if (item.password == null)
-                                {
-                                    <form asp-action="CreatePassword" asp-controller="User" method="post">
-                                        <input type="hidden" name="username" value="@item.username" />
-                                        <input type="hidden" name="email" value="@item.email" />
-                                        <input type="hidden" name="id" value="@item._id" />
-                                        <button type="submit" class="btn btn-success btn-sm">Create Password</button>
-                                    </form>
-                                }
-                                @if (item.statusAccount == "Active")
-                                {
-                                    <a href="@Url.Action("BlockUser", "User", new { id = item._id })" class="btn btn-warning btn-sm">Block</a>
-                                }
-                                <a href="@Url.Action("Delete", "User", new { id = item._id })" class="btn btn-danger btn-sm">Delete</a>
-                            </td>
-                        </tr>
-                        i++;
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="card-title">Administrator List</h5>
+        <button class="btn btn-primary m-3" id="modalTrigger">
+            <i class="bx bx-plus me-1"></i> Add New Admin
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @{
+                        var i = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@item.username</td>
+                                <td>@item.email</td>
+                                <td>@item.roleAdmin</td>
+                                <td>
+                                    @if (item.statusAccount == "Active")
+                                    {
+                                        <span class="badge bg-label-success me-1">Active</span>
+                                    }
+                                    else if (item.statusAccount == "Inactive")
+                                    {
+                                        <span class="badge bg-label-secondary me-1">Inactive</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-label-danger me-1">Blocked</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.statusAccount == "Inactive")
+                                    {
+                                        <form asp-action="CreatePassword" asp-controller="User" method="post">
+                                            <input type="hidden" name="username" value="@item.username" />
+                                            <input type="hidden" name="email" value="@item.email" />
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bx bx-envelope me-1"></i> Send Create Password
+                                            </button>
+                                        </form>
+                                    }
+                                    @if (item.statusAccount == "Active")
+                                    {
+                                        <a href="@Url.Action("BlockUser", "User", new { id = item._id })" class="btn btn-warning btn-sm">
+                                            <i class="bx bx-block me-1"></i> Block
+                                        </a>
+                                    }
+                                    <a href="@Url.Action("Delete", "User", new { id = item._id })" class="btn btn-danger btn-sm">
+                                        <i class="bx bx-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            i++;
+                        }
                     }
-                }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<div id="modalContainer"></div>
+
+@section PageScripts {
+    <script src="~/js/modal-user.js"></script>
+}
