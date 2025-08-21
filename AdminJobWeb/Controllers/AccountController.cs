@@ -1,15 +1,13 @@
 ﻿using AdminJobWeb.Models.Account;
-using Microsoft.AspNetCore.Identity;
+using AdminJobWeb.Tracelog;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Net.Mail;
+using System.Diagnostics;
 using System.Net;
+using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
-using MongoDB.Bson;
-using Microsoft.AspNetCore.Http;
-using AdminJobWeb.Tracelog;
-using System.Diagnostics;
 
 namespace AdminJobWeb.Controllers
 {
