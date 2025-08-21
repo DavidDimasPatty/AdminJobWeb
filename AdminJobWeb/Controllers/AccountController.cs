@@ -46,6 +46,16 @@ namespace AdminJobWeb.Controllers
             {
                 return RedirectToAction("Index", "Home");
             }
+            int? loginCount = HttpContext.Session.GetInt32("loginCount");
+            var waiting = HttpContext.Session.GetString("waiting");
+            if (loginCount != 0 && loginCount!=null)
+            {
+                ViewBag.loginCount = loginCount;
+                if (!string.IsNullOrEmpty(waiting))
+                {
+                    ViewBag.waiting = waiting;
+                }
+            }
 
             return View("Login");
         }
@@ -64,7 +74,15 @@ namespace AdminJobWeb.Controllers
                 if (admin == null)
                 {
                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                }
+
+                if(admin.loginCount==4 && admin.lastLogin.AddMinutes(5) > DateTime.Now)
+                {
+                    int diffMin = admin.lastLogin.AddMinutes(5).Minute - DateTime.Now.Minute;
+                    int diffSec = admin.lastLogin.AddMinutes(5).Second - DateTime.Now.Second;
+                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
+                    return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
                 }
 
                 tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
@@ -77,13 +95,30 @@ namespace AdminJobWeb.Controllers
 
                     for (int i = 0; i < computedHash.Length; i++)
                     {
+
                         if (computedHash[i] != admin.password[i])
                         {
                             var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1);
                             await _adminCollection.UpdateOneAsync(filter, updateWrongPassword);
-                            tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                            return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                            if (admin.loginCount < 5)
+                            {
+                                if (admin.loginCount == 3)
+                                {
+                                    HttpContext.Session.SetString("waiting", "True");
+                                }
+                                HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
+                                tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                            }
+                            else
+                            {
+                                var updateBlock = Builders<admin>.Update.Set(p => p.statusAccount, "Block");
+                                await _adminCollection.UpdateOneAsync(filter, updateBlock);
+                                tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                            }
                         }
+
                     }
                 }
 
@@ -102,7 +137,7 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(e);
                 tracelog.WriteLog($"User : {username}, Failed Login, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                return Content($"<script>alert('{e.Message}');window.location.href='/Account/LogOut';</script>", "text/html");
             }
         }
 
@@ -269,6 +304,13 @@ namespace AdminJobWeb.Controllers
                              .Replace("=", "");
 
             return token;
+        }
+
+        [HttpGet]
+        public ActionResult LogOut()
+        {
+            HttpContext.Session.Clear();
+            return View("Login");
         }
     }
 }

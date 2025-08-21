@@ -30,10 +30,18 @@
                         <input type="text" name="username" class="form-control" placeholder="Username Admin..." />
                         <input type="password" name="password" class="form-control" placeholder="Password Admin..." />
                     </div>
+                    @if (ViewBag.loginCount != 0 && ViewBag.loginCount != null)
+                    {
+                        <center class="mt-2"><b class="text-danger text-center">Percobaan ke-@ViewBag.loginCount dari 5</b> </center>
+                    }
+                    @if (!String.IsNullOrEmpty(ViewBag.waiting))
+                    {
+                        <center class="mt-2" id="waitingDiv"><b class="text-danger text-center">Mohon Menunggu Sampai <p id="countDown"></p></b> </center>
+                    }
                 </div>
                 <div class="card-footer">
                     <div class="row d-flex gap-3">
-                        <input class="btn btn-info text-light" type="submit" value="Login" />
+                        <input class="btn btn-info text-light" type="submit" value="Login" id="logSubmit" />
                         <a class="btn btn-danger" href="/Account/ResetPassword">Reset Password</a>
                     </div>
                 </div>
@@ -44,3 +52,22 @@
 </body>
 </html>
 
+<script>
+
+    if ("@ViewBag.waiting" != "") {
+        $("#logSubmit").attr("disabled",true);
+        var countDownDate = new Date(Date.now() + (5 * 60 * 1000));
+        var x = setInterval(function () {
+            var now = new Date().getTime();
+            var distance = countDownDate - now;
+            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            document.getElementById("countDown").innerHTML = minutes + "m " + seconds + "s ";
+            if (distance < 0) {
+                clearInterval(x);
+                $("#logSubmit").attr("disabled", false);
+                $("#waitingDiv").hide();
+            }
+        }, 1000);
+    }
+</script>
