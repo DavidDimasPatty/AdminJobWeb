@@ -1,0 +1,63 @@
+﻿@model IEnumerable<AdminJobWeb.Models.Account.admin>
+@{
+    ViewData["Title"] = "Admin Dashboard - User Management";
+}
+
+<div class="card">
+    <h5 class="card-header">Administrator List</h5>
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody class="table-border-bottom-0">
+                @{
+                    var i = 1;
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@i</td>
+                            <td>@item.username</td>
+                            <td>@item.email</td>
+                            <td>@item.roleAdmin</td>
+                            <td>
+                                @if (item.statusAccount == "Active")
+                                {
+                                    <span class="badge bg-label-success me-1">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-label-danger me-1">Blocked</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.password == null)
+                                {
+                                    <form asp-action="CreatePassword" asp-controller="Account" method="post">
+                                        <input type="hidden" name="username" value="@item.username" />
+                                        <input type="hidden" name="email" value="@item.email" />
+                                        <input type="hidden" name="id" value="@item._id" />
+                                        <button type="submit" class="btn btn-success btn-sm">Create Password</button>
+                                    </form>
+                                }
+                                @if (item.statusAccount == "Active")
+                                {
+                                    <a href="@Url.Action("BlockUser", "User", new { id = item._id })" class="btn btn-warning btn-sm">Block</a>
+                                }
+                                <a href="@Url.Action("Delete", "User", new { id = item._id })" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        i++;
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
