@@ -50,12 +50,16 @@ namespace AdminJobWeb.Controllers
             }
             int? loginCount = HttpContext.Session.GetInt32("loginCount");
             var waiting = HttpContext.Session.GetString("waiting");
+            int? diffMin = HttpContext.Session.GetInt32("diffMin");
+            int? diffSec = HttpContext.Session.GetInt32("diffSec");
             if (loginCount != 0 && loginCount!=null)
             {
                 ViewBag.loginCount = loginCount;
                 if (!string.IsNullOrEmpty(waiting))
                 {
                     ViewBag.waiting = waiting;
+                    ViewBag.diffMin = diffMin;
+                    ViewBag.diffSec = diffSec;
                 }
             }
 
@@ -81,8 +85,9 @@ namespace AdminJobWeb.Controllers
 
                 if(admin.loginCount==4 && admin.lastLogin.AddMinutes(5) > DateTime.Now)
                 {
-                    int diffMin = admin.lastLogin.AddMinutes(5).Minute - DateTime.Now.Minute;
-                    int diffSec = admin.lastLogin.AddMinutes(5).Second - DateTime.Now.Second;
+                    TimeSpan diff = admin.lastLogin - DateTime.Now;
+                    int diffMin =diff.Minutes;
+                    int diffSec = diff.Seconds;
                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
                     return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
                 }
@@ -107,6 +112,11 @@ namespace AdminJobWeb.Controllers
                                 if (admin.loginCount == 3)
                                 {
                                     HttpContext.Session.SetString("waiting", "True");
+                                    TimeSpan diff = admin.lastLogin - DateTime.Now;
+                                    int diffMin = diff.Minutes;
+                                    int diffSec = diff.Seconds;
+                                    HttpContext.Session.SetInt32("diffMin", diffMin);
+                                    HttpContext.Session.SetInt32("diffSec", diffSec);
                                 }
                                 HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
                                 tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
