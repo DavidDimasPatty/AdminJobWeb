@@ -1,8 +1,11 @@
 ﻿using AdminJobWeb.Models.Account;
 using AdminJobWeb.Tracelog;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Mail;
@@ -48,16 +51,20 @@ namespace AdminJobWeb.Controllers
             }
             int? loginCount = HttpContext.Session.GetInt32("loginCount");
             var waiting = HttpContext.Session.GetString("waiting");
-            int? diffMin = HttpContext.Session.GetInt32("diffMin");
-            int? diffSec = HttpContext.Session.GetInt32("diffSec");
             if (loginCount != 0 && loginCount!=null)
             {
                 ViewBag.loginCount = loginCount;
                 if (!string.IsNullOrEmpty(waiting))
                 {
+                    string? dateWrong = HttpContext.Session.GetString("dateWrong");
+                    int? diffMin = HttpContext.Session.GetInt32("diffMin");
+                    int? diffSec = HttpContext.Session.GetInt32("diffSec");
+                    TimeSpan diff = DateTime.Parse(dateWrong!).AddMinutes((double)diffMin!).AddSeconds((double)diffSec!) - DateTime.UtcNow;
+                    int diffMinRemain = diff.Minutes;
+                    int diffSecRemain = diff.Seconds;
                     ViewBag.waiting = waiting;
-                    ViewBag.diffMin = diffMin;
-                    ViewBag.diffSec = diffSec;
+                    ViewBag.diffMin = diffMinRemain;
+                    ViewBag.diffSec = diffSecRemain;
                 }
             }
 
@@ -81,9 +88,9 @@ namespace AdminJobWeb.Controllers
                     return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
                 }
 
-                if(admin.loginCount==4 && admin.lastLogin.AddMinutes(5) > DateTime.Now)
+                if(admin.loginCount==4 && admin.lastLogin.AddMinutes(5) > DateTime.UtcNow)
                 {
-                    TimeSpan diff = admin.lastLogin - DateTime.Now;
+                    TimeSpan diff = admin.lastLogin.AddMinutes(5) - DateTime.UtcNow;
                     int diffMin =diff.Minutes;
                     int diffSec = diff.Seconds;
                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
@@ -103,18 +110,19 @@ namespace AdminJobWeb.Controllers
 
                         if (computedHash[i] != admin.password[i])
                         {
-                            var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1);
+                            var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1).Set(p=>p.lastLogin,DateTime.UtcNow);
                             await _adminCollection.UpdateOneAsync(filter, updateWrongPassword);
                             if (admin.loginCount < 5)
                             {
                                 if (admin.loginCount == 3)
                                 {
                                     HttpContext.Session.SetString("waiting", "True");
-                                    TimeSpan diff = admin.lastLogin - DateTime.Now;
+                                    TimeSpan diff = DateTime.UtcNow.AddMinutes(5) - DateTime.UtcNow;
                                     int diffMin = diff.Minutes;
                                     int diffSec = diff.Seconds;
                                     HttpContext.Session.SetInt32("diffMin", diffMin);
                                     HttpContext.Session.SetInt32("diffSec", diffSec);
+                                    HttpContext.Session.SetString("dateWrong", DateTime.UtcNow.ToString());
                                 }
                                 HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
                                 tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
@@ -134,7 +142,7 @@ namespace AdminJobWeb.Controllers
 
                 tracelog.WriteLog($"User : {username}, Success Hash Password");
 
-                var updateSuccress = Builders<admin>.Update.Set(p => p.loginCount, 0).Set(p => p.lastLogin, DateTime.Now);
+                var updateSuccress = Builders<admin>.Update.Set(p => p.loginCount, 0).Set(p => p.lastLogin, DateTime.UtcNow);
                 await _adminCollection.UpdateOneAsync(filter, updateSuccress);
                 HttpContext.Session.SetString("username", admin.username);
                 HttpContext.Session.SetString("email", admin.email);
@@ -230,7 +238,8 @@ namespace AdminJobWeb.Controllers
                     _id = ObjectId.GenerateNewId().ToString(),
                     key = key,
                     username = username,
-                    addTime = DateTime.Now
+                    addTime = DateTime.UtcNow,
+                    used="N"
                 };
 
                 await _keyGenerateCollection.InsertOneAsync(keyGenerate);
@@ -251,7 +260,8 @@ namespace AdminJobWeb.Controllers
             var admin = await _keyGenerateCollection
            .Find(Builders<KeyGenerate>.Filter.And(
                Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
-               Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+               Builders<KeyGenerate>.Filter.Eq(p => p.key, key),
+                Builders<KeyGenerate>.Filter.Eq(p => p.used,"N")
            )).FirstOrDefaultAsync();
 
             if (admin == null)
@@ -259,7 +269,7 @@ namespace AdminJobWeb.Controllers
                 return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
-            if (admin.addTime.AddMinutes(15) < DateTime.Now)
+            if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
                 return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
 
             ViewBag.username = username;
@@ -291,6 +301,13 @@ namespace AdminJobWeb.Controllers
                 passwordSalt = hmac.Key;
                 passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             }
+
+            var filterKey = Builders<KeyGenerate>.Filter.And(
+                Builders<KeyGenerate>.Filter.Eq(p=>p.username,username),
+                Builders<KeyGenerate>.Filter.Eq(p=>p.key,key)
+                );
+            var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+            var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
 
             var filter = Builders<admin>.Filter.Eq(p => p.username, username);
             var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt);
