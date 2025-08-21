@@ -1,0 +1,32 @@
+﻿@model AdminJobWeb.Models.Account.admin
+
+<div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form asp-action="CreateAdmin" asp-controller="User" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel">Create New Admin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col mb-6">
+                            <label asp-for="email" class="form-label">Email</label>
+                            <input type="email" asp-for="email" class="form-control" placeholder="xxxx&#64;xxx.xx">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col mb-6">
+                            <label asp-for="username" class="form-label">Username</label>
+                            <input type="text" asp-for="username" class="form-control" placeholder="Enter Username">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
