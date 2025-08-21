@@ -55,8 +55,10 @@
 <script>
 
     if ("@ViewBag.waiting" != "") {
-        $("#logSubmit").attr("disabled",true);
-        var countDownDate = new Date(Date.now() + (5 * 60 * 1000));
+        $("#logSubmit").attr("disabled", true);
+        var minutes = @ViewBag.diffMin;
+        var seconds = @ViewBag.diffSec;
+        var countDownDate = new Date(Date.now() + ((minutes * 60 + seconds) * 1000));
         var x = setInterval(function () {
             var now = new Date().getTime();
             var distance = countDownDate - now;
