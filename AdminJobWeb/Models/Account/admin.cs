@@ -17,5 +17,7 @@ namespace AdminJobWeb.Models.Account
         public byte[] saltHash { get; set; }
         public DateTime addTime { get; set; }
         public DateTime updateTime { get; set; }
+        public bool statusEnrole { get; set; }
+        public DateTime approvalTime { get; set; }
     }
 }

@@ -6,9 +6,14 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between">
         <h5 class="card-title">Administrator List</h5>
-        <button class="btn btn-primary m-3" id="modalTrigger">
-            <i class="bx bx-plus me-1"></i> Add New Admin
-        </button>
+        @if (ViewBag.role == 1)
+        {
+            <form asp-action="SendFormAdmin" asp-controller="User" method="post">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bx bx-plus me-1"></i> Add New Admin
+                </button>
+            </form>
+        }
     </div>
     <div class="card-body">
         <div class="table-responsive text-nowrap">
@@ -34,28 +39,40 @@
                                 <td>@item.email</td>
                                 <td>@item.roleAdmin</td>
                                 <td>
-                                    @if (item.statusAccount == "Active")
+                                    @if (item.statusAccount == "Active" && item.statusEnrole)
                                     {
                                         <span class="badge bg-label-success me-1">Active</span>
                                     }
-                                    else if (item.statusAccount == "Inactive")
+                                    else if (!item.statusEnrole && item.password == null)
                                     {
-                                        <span class="badge bg-label-secondary me-1">Inactive</span>
+                                        <span class="badge bg-label-secondary me-1">Creating Password</span>
                                     }
-                                    else
+                                    else if (item.statusAccount == "Block")
                                     {
                                         <span class="badge bg-label-danger me-1">Blocked</span>
                                     }
+                                    else if (item.password != null && !item.statusEnrole && item.approvalTime == DateTime.MinValue)
+                                    {
+                                        <span class="badge bg-label-warning me-1">Pending Approval</span>
+                                    }
+                                    else if (item.approvalTime != DateTime.MinValue && !item.statusEnrole)
+                                    {
+                                        <span class="badge bg-label-info me-1">Rejected</span>
+                                    }
                                 </td>
                                 <td>
-                                    @if (item.statusAccount == "Inactive")
+                                    @if (item.password != null && !item.statusEnrole && item.approvalTime == DateTime.MinValue)
                                     {
-                                        <form asp-action="CreatePassword" asp-controller="User" method="post">
-                                            <input type="hidden" name="username" value="@item.username" />
-                                            <input type="hidden" name="email" value="@item.email" />
+                                        <form asp-action="ApprovalNewAdmin" asp-controller="User" method="post" class="d-inline">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-success btn-sm">
-                                                <i class="bx bx-envelope me-1"></i> Send Create Password
+                                                <i class="bx bx-check me-1"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form asp-action="RejectNewAdmin" asp-controller="User" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bx bx-x me-1"></i> Reject
                                             </button>
                                         </form>
                                     }
@@ -78,9 +95,3 @@
         </div>
     </div>
 </div>
-
-<div id="modalContainer"></div>
-
-@section PageScripts {
-    <script src="~/js/modal-user.js"></script>
-}
