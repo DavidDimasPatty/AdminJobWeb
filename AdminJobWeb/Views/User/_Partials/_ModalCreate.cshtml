@@ -2,7 +2,7 @@
 
 <div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <form asp-action="CreateAdmin" asp-controller="User" method="post">
+        <form asp-action="SendFormAdmin" asp-controller="User" method="post">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalLabel">Create New Admin</h5>
@@ -14,17 +14,22 @@
                             <label asp-for="email" class="form-label">Email</label>
                             <input type="email" asp-for="email" class="form-control" placeholder="xxxx&#64;xxx.xx">
                         </div>
-                    </div>
-                    <div class="row">
+                    </div><div class="row">
                         <div class="col mb-6">
-                            <label asp-for="username" class="form-label">Username</label>
-                            <input type="text" asp-for="username" class="form-control" placeholder="Enter Username">
+                            <label asp-for="roleAdmin" class="form-label">Role</label>
+                            <select asp-for="roleAdmin" class="form-control">
+                                <option value="" disabled selected>Select Role</option>
+                                <option value="2">Admin</option>
+                                <option value="3">Surveyer</option>
+                            </select>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-envelope me-1"></i> Send Email
+                    </button>
                 </div>
             </div>
         </form>

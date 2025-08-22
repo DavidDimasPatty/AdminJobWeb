@@ -3,7 +3,7 @@
     $(function () {
         function initModalUser() {
             $.ajax({
-                url: '/User/CreateAdmin',
+                url: '/User/SendFormAdmin',
                 type: 'GET',
                 success: function (data) {
                     $('#modalContainer').html(data);

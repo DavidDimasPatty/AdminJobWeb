@@ -6,14 +6,9 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between">
         <h5 class="card-title">Administrator List</h5>
-        @if (ViewBag.role == 1)
-        {
-            <form asp-action="SendFormAdmin" asp-controller="User" method="post">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bx bx-plus me-1"></i> Add New Admin
-                </button>
-            </form>
-        }
+        <button type="button" id="modalTrigger" class="btn btn-primary btn-sm">
+            <i class="bx bx-plus me-1"></i> Add New Admin
+        </button>
     </div>
     <div class="card-body">
         <div class="table-responsive text-nowrap">
@@ -42,10 +37,6 @@
                                     @if (item.statusAccount == "Active" && item.statusEnrole)
                                     {
                                         <span class="badge bg-label-success me-1">Active</span>
-                                    }
-                                    else if (!item.statusEnrole && item.password == null)
-                                    {
-                                        <span class="badge bg-label-secondary me-1">Creating Password</span>
                                     }
                                     else if (item.statusAccount == "Block")
                                     {
@@ -78,13 +69,19 @@
                                     }
                                     @if (item.statusAccount == "Active")
                                     {
-                                        <a href="@Url.Action("BlockUser", "User", new { id = item._id })" class="btn btn-warning btn-sm">
-                                            <i class="bx bx-block me-1"></i> Block
-                                        </a>
+                                        <form asp-action="BlockAdmin" asp-controller="User" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-warning btn-sm">
+                                                <i class="bx bx-block me-1"></i> Block
+                                            </button>
+                                        </form>
                                     }
-                                    <a href="@Url.Action("Delete", "User", new { id = item._id })" class="btn btn-danger btn-sm">
-                                        <i class="bx bx-trash"></i> Delete
-                                    </a>
+                                    <form asp-action="DeleteAdmin" asp-controller="User" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item._id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             i++;
@@ -95,3 +92,9 @@
         </div>
     </div>
 </div>
+
+<div id="modalContainer"></div>
+
+@section PageScripts {
+    <script src="~/js/modal-user.js" asp-append-version="true"></script>
+}

@@ -97,8 +97,20 @@ namespace AdminJobWeb.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpGet]
         public async Task<ActionResult> SendFormAdmin()
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (string.IsNullOrEmpty(adminLogin) || HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            return PartialView("_Partials/_ModalCreate");
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> SendFormAdmin(admin objData)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string emailLogin = HttpContext.Session.GetString("email")!;
@@ -109,26 +121,32 @@ namespace AdminJobWeb.Controllers
 
             try
             {
-                _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create New Admin");
+                var existingEmail = await _adminCollection
+                    .Find(Builders<admin>.Filter.Eq(p => p.email, objData.email))
+                    .FirstOrDefaultAsync();
+
+                if (existingEmail != null)
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Email sudah memiliki akun admin!");
+                    return Content($"<script>alert('Email sudah memiliki akun admin!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create New Admin to {objData.email}");
 
                 var key = GenerateRandomKey();
-                string subject = "Form Create Akun Admin Baru";
+                string subject = "Form Create Akun Admin";
                 string body = @$"<html>
                 <header>
-                    <h3>Link Untuk Form Create Akun Admin Baru</h3>
+                    <h3>Link Form Create Akun Admin</h3>
                 </header>
                 <body>
                     <div>
-                        Berikut merupakan link untuk form create akun admin baru:
+                        Berikut merupakan link untuk form create akun admin:
                     <div>
                     <br/>
-                    <br/>
-                    <div>
-                        <b>Username</b> : {adminLogin}
-                    </div>
                     <br/>
                      <div>
-                        <b>Link</b> : <a href='{linkSelf}/User/CreateAdmin?username={adminLogin}&key={key}'>{linkSelf}/username={adminLogin}&key={key}</a>
+                        <b>Link</b> : <a href='{linkSelf}/User/CreateAdmin?username={objData.email}&key={key}'>{linkSelf}/username={objData.email}&key={key}</a>
                     </div>
                     <br/>
                     <br/>
@@ -151,7 +169,7 @@ namespace AdminJobWeb.Controllers
                     Credentials = new NetworkCredential(emailClient, appPass)
                 };
 
-                using (var message = new MailMessage(emailClient, emailLogin)
+                using (var message = new MailMessage(emailClient, objData.email)
                 {
                     Subject = subject,
                     Body = body,
@@ -164,18 +182,20 @@ namespace AdminJobWeb.Controllers
                 {
                     _id = ObjectId.GenerateNewId().ToString(),
                     key = key,
-                    username = adminLogin,
-                    addTime = DateTime.UtcNow
+                    username = objData.email,
+                    addTime = DateTime.UtcNow,
+                    used = "N"
                 };
 
                 await _keyGenerateCollection.InsertOneAsync(keyGenerate);
 
-                return Content("<script>alert('Berhasil mengirimkan link untuk pembuatan Admin baru. Silahkan cek email Anda!');window.location.href='/User/Index'</script>", "text/html");
+                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil mengirimkan form untuk pembuatan Admin baru ke {objData.email}");
+                return Content("<script>alert('Berhasil mengirimkan link untuk pembuatan Admin baru. Silahkan hubungi user terkait untuk mengecek email!');window.location.href='/User/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
-                _tracelogUser.WriteLog($"User : {adminLogin}, Failed send form to create new admin, Reason : {e.Message}");
+                _tracelogUser.WriteLog($"User : {adminLogin}, Failed send form to create new admin to {objData.email}, Reason : {e.Message}");
                 return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
             }
         }
@@ -191,7 +211,7 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                _tracelogUser.WriteLog($"User : {username}, User Tidak Ditemukan!");
+                _tracelogUser.WriteLog($"User : {username}, Key Tidak Ditemukan!");
                 return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
@@ -201,7 +221,13 @@ namespace AdminJobWeb.Controllers
                 return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
-            ViewBag.username = username;
+            if (admin.used == "Y")
+            {
+                _tracelogUser.WriteLog($"User : {username}, Link Sudah Digunakan!");
+                return Content("<script>alert('Link Sudah Digunakan!');window.location.href='/Account/Index'</script>", "text/html");
+            }
+
+            ViewBag.email = username;
             ViewBag.key = key;
 
             return View();
@@ -209,40 +235,58 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> CreateAdmin([FromForm] admin dataObj, string usernameAdmin, string key)
+        public async Task<ActionResult> CreateAdmin([FromForm] admin dataObj, string key, string password, string passwordRet)
         {
-            string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
-            {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
-            }
-
             try
             {
-                _tracelogUser.WriteLog($"User : {adminLogin}, Start Create New Admin");
-                _tracelogUser.WriteLog($"User : {adminLogin}, Start Hit Database Admin");
+                _tracelogUser.WriteLog($"User : {dataObj.email}, Start Create New Admin");
+                _tracelogUser.WriteLog($"User : {dataObj.email}, Start Hit Database Admin");
 
-                var existingAdmin = await _adminCollection
+                var existingUsername = await _adminCollection
                     .Find(Builders<admin>.Filter.Eq(p => p.username, dataObj.username))
+                    .FirstOrDefaultAsync();
+
+                var existingEmail = await _adminCollection
+                    .Find(Builders<admin>.Filter.Eq(p => p.email, dataObj.email))
                     .FirstOrDefaultAsync();
 
                 // Input validation
                 if (string.IsNullOrEmpty(dataObj.username) || string.IsNullOrEmpty(dataObj.email))
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Data Tidak Boleh Kosong!");
-                    return Content($"<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/CreateAdmin?username={usernameAdmin}&key={key}'</script>", "text/html");
+                    _tracelogUser.WriteLog($"User : {dataObj.email}, Data Tidak Boleh Kosong!");
+                    return Content($"<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
                 }
 
-                if (existingAdmin != null)
+                if (existingUsername != null)
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Username Sudah Ada!");
-                    return Content($"<script>alert('Username Sudah Ada!');window.location.href='/User/CreateAdmin?username={usernameAdmin}&key={key}'</script>", "text/html");
+                    _tracelogUser.WriteLog($"User : {dataObj.email}, Username Sudah Ada!");
+                    return Content($"<script>alert('Username Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
                 }
 
                 if (!string.IsNullOrEmpty(dataObj.email) && !dataObj.email.Contains("@"))
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Email Tidak Valid!");
-                    return Content($"<script>alert('Email Tidak Valid!');window.location.href='/User/CreateAdmin?username={usernameAdmin}&key={key}'</script>", "text/html");
+                    _tracelogUser.WriteLog($"User : {dataObj.email}, Email Tidak Valid!");
+                    return Content($"<script>alert('Email Tidak Valid!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                }
+
+                if (existingEmail != null)
+                {
+                    _tracelogUser.WriteLog($"User : {dataObj.email}, Email Sudah Ada!");
+                    return Content($"<script>alert('Email Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                }
+
+                if (password != passwordRet)
+                {
+                    _tracelogUser.WriteLog($"User : {dataObj.email}, Password Tidak Sama!");
+                    return Content($"<script>alert('Password Tidak Sama!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                }
+
+                byte[] passwordSalt = [];
+                byte[] passwordHash = [];
+                using (var hmac = new HMACSHA512())
+                {
+                    passwordSalt = hmac.Key;
+                    passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
                 }
 
                 dataObj.loginCount = 0;
@@ -253,146 +297,31 @@ namespace AdminJobWeb.Controllers
                 dataObj.updateTime = DateTime.UtcNow;
                 dataObj.approvalTime = DateTime.MinValue;
                 dataObj.statusEnrole = false;
+                dataObj.password = passwordHash;
+                dataObj.saltHash = passwordSalt;
+                dataObj.passwordExpired = DateTime.UtcNow.AddDays(90); // Set password expiration to 90 days from now
+                dataObj.passwordLama = passwordHash; // Store the initial password hash
+                dataObj.saltHashLama = passwordSalt; // Store the initial salt hash
 
                 await _adminCollection.InsertOneAsync(dataObj);
 
-                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Create New User {dataObj.username}");
-                
-                // -----------------
+                // Mark the key as used
+                var filter = Builders<KeyGenerate>.Filter.And(
+                    Builders<KeyGenerate>.Filter.Eq(p => p.username, dataObj.email),
+                    Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+                );
+                var update = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+                await _keyGenerateCollection.UpdateOneAsync(filter, update);
 
-                _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Create Password for User {dataObj.username}");
-
-                var keyPass = GenerateRandomKey();
-                string subject = "Create Password Akun Admin";
-                string body = @$"<html>
-                <header>
-                    <h3>Link Untuk Create Password</h3>
-                </header>
-                <body>
-                    <div>
-                        Berikut merupakan link untuk create password dengan akun:
-                    <div>
-                    <br/>
-                    <br/>
-                    <div>
-                        <b>Username</b> : {dataObj.username}
-                    </div>
-                    <br/>
-                     <div>
-                        <b>Link</b> : <a href='{linkSelf}/User/CreateNewPassword?username={dataObj.username}&key={keyPass}'>{linkSelf}/username={dataObj.username}&key={keyPass}</a>
-                    </div>
-                    <br/>
-                    <br/>
-                    <div>
-                        Terima Kasih,
-                    </div>
-                    <div>
-                        IT Dev Ikodora
-                    </div>
-                </body>
-
-                </html>";
-                var smtp = new SmtpClient
-                {
-                    Host = "smtp.gmail.com",
-                    Port = 587,
-                    EnableSsl = true,
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    UseDefaultCredentials = false,
-                    Credentials = new NetworkCredential(emailClient, appPass)
-                };
-
-                using (var message = new MailMessage(emailClient, dataObj.email)
-                {
-                    Subject = subject,
-                    Body = body,
-                    IsBodyHtml = true
-                })
-                {
-                    smtp.Send(message);
-                }
-                var keyGenerate = new KeyGenerate
-                {
-                    _id = ObjectId.GenerateNewId().ToString(),
-                    key = keyPass,
-                    username = dataObj.username,
-                    addTime = DateTime.UtcNow
-                };
-
-                await _keyGenerateCollection.InsertOneAsync(keyGenerate);
-
-                _tracelogUser.WriteLog($"User : {adminLogin}, Successfully send email for User {dataObj.username}");
-                return Content("<script>alert('Berhasil membuat admin baru. Mohon hubungi user terkait untuk mengecek email dan membuat password!');window.location.href='/User/Index'</script>", "text/html");
+                _tracelogUser.WriteLog($"User : {dataObj.email}, Berhasil Create New Admin {dataObj.username}");
+                return Content("<script>alert('Berhasil membuat admin baru. Mohon hubungi Super Admin untuk approval akun Anda!');window.location.href='/Account/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
-                _tracelogUser.WriteLog($"User : {adminLogin}, Failed Create New User, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                _tracelogUser.WriteLog($"User : {dataObj.username}, Failed Create New Admin, Reason : {e.Message}");
+                return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
             }
-        }
-
-        [HttpGet]
-        public async Task<ActionResult> CreateNewPassword(string username, string key)
-        {
-            var admin = await _keyGenerateCollection
-           .Find(Builders<KeyGenerate>.Filter.And(
-               Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
-               Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
-           )).FirstOrDefaultAsync();
-
-            if (admin == null)
-            {
-                _tracelogUser.WriteLog($"User : {username}, User Tidak Ditemukan!");
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
-            }
-
-            if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
-            {
-                _tracelogUser.WriteLog($"User : {username}, Link Expired!");
-                return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
-            }
-
-            ViewBag.username = username;
-            ViewBag.key = key;
-
-            return View();
-        }
-
-        [HttpPost]
-        [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> CreateNewPassword([FromForm] string username, string password, string passwordRet, string key)
-        {
-            if (password != passwordRet)
-            {
-                _tracelogUser.WriteLog($"User : {username}, Password Tidak Sama!");
-                return Content($"<script>alert('Password Tidak Sama!');window.location.href='/User/CreateNewPassword?username={username}&key={key}'</script>", "text/html");
-            }
-
-            var admin = await _adminCollection
-                        .Find(Builders<admin>.Filter.Eq(p => p.username, username))
-                        .FirstOrDefaultAsync();
-
-            if (admin == null)
-            {
-                _tracelogUser.WriteLog($"User : {username}, User Tidak Ditemukan!");
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
-            }
-
-            byte[] passwordSalt = [];
-            byte[] passwordHash = [];
-            using (var hmac = new HMACSHA512())
-            {
-                passwordSalt = hmac.Key;
-                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            }
-
-            var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-            var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt).Set(p => p.statusAccount, "Active");
-            var result = await _adminCollection.UpdateOneAsync(filter, update);
-
-            _tracelogUser.WriteLog($"User : {username}, Berhasil Create Password");
-            return Content("<script>alert('Berhasil Create Password!');window.location.href='/Account/Index'</script>", "text/html");
         }
 
         [HttpPost]
@@ -416,7 +345,7 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Approval New Admin");
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Approval New Admin, Data tidak ditemukan");
                     return Content("<script>alert('Gagal Approval New Admin!');window.location.href='/User/Index'</script>", "text/html");
                 }
 
@@ -440,6 +369,7 @@ namespace AdminJobWeb.Controllers
             {
                 return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
             }
+
             try
             {
                 _tracelogUser.WriteLog($"User : {adminLogin}, Start Reject New Admin");
@@ -451,7 +381,7 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Reject New Admin");
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Reject New Admin, Data tidak ditemukan");
                     return Content("<script>alert('Gagal Reject New Admin!');window.location.href='/User/Index'</script>", "text/html");
                 }
 
@@ -462,6 +392,76 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Reject New Admin, Reason : {e.Message}");
+                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> BlockAdmin(string id)
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Block Admin");
+
+                var filter = Builders<admin>.Filter.Eq(p => p._id, id);
+                var update = Builders<admin>.Update.Set(p => p.statusAccount, "Block");
+
+                var result = await _adminCollection.UpdateOneAsync(filter, update);
+
+                if (result.ModifiedCount == 0)
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Block Admin, Data tidak ditemukan");
+                    return Content("<script>alert('Gagal Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Block Admin");
+                return Content("<script>alert('Berhasil Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                _tracelogUser.WriteLog($"User : {adminLogin}, Failed Block Admin, Reason : {e.Message}");
+                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> DeleteAdmin(string id)
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Delete Admin");
+
+                var filter = Builders<admin>.Filter.Eq(p => p._id, id);
+                var result = await _adminCollection.DeleteOneAsync(filter);
+
+                if (result.DeletedCount == 0)
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Delete Admin, Data tidak ditemukan");
+                    return Content("<script>alert('Gagal Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Delete Admin");
+                return Content("<script>alert('Berhasil Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                _tracelogUser.WriteLog($"User : {adminLogin}, Failed Delete Admin, Reason : {e.Message}");
                 return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
             }
         }
