@@ -38,8 +38,6 @@ namespace AdminJobWeb.Controllers
             try
             {
                 _tracelogSurveyer.WriteLog("UserController Index view called");
-
-                // Retrieve all admin users from the database
                 List<surveyers> surveyer = await _surveyerCollection.Find(_ => true).ToListAsync();
 
                 if (surveyer.Count == 0)
@@ -48,7 +46,6 @@ namespace AdminJobWeb.Controllers
                     Debug.WriteLine("No admin users found in the database.");
                     return Content("<script>alert('No admin users found in the database.');window.location.href='/Home/Index';</script>", "text/html");
                 }
-
                 _tracelogSurveyer.WriteLog($"Retrieved {surveyer.Count} admin users from the database.");
                 Debug.WriteLine($"Retrieved {surveyer.Count} admin users from the database.");
 
