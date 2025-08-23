@@ -1,4 +1,6 @@
 ﻿using AdminJobWeb.Models.Account;
+using AdminJobWeb.Models.Applicant;
+using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +14,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using AdminJobWeb.AidFunction;
 
 namespace AdminJobWeb.Controllers
 {
@@ -20,6 +23,8 @@ namespace AdminJobWeb.Controllers
         private readonly IMongoCollection<admin> _adminCollection;
         private readonly IMongoCollection<KeyGenerate> _keyGenerateCollection;
         private readonly IMongoCollection<surveyers> _surveyerCollection;
+        private readonly IMongoCollection<Applicant> _applicantCollection;
+        private readonly IMongoCollection<Company> _companyCollection;
         private readonly IMongoDatabase _database;
         private IConfiguration congfiguration;
         private readonly IMemoryCache _cache;
@@ -27,10 +32,13 @@ namespace AdminJobWeb.Controllers
         private string adminCollectionName;
         private string keyGenerateCollectionName;
         private string surveyerCollectionName;
+        private string applicantCollectionName;
+        private string companyCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
         private TracelogAccount tracelog;
+        public GeneralFunction1 generalFunction1;
         public AccountController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
             this._cache = cache;
@@ -43,10 +51,15 @@ namespace AdminJobWeb.Controllers
             this._keyGenerateCollection = _database.GetCollection<KeyGenerate>(this.keyGenerateCollectionName);
             this.surveyerCollectionName = configuration["MonggoDbSettings:Collections:surveyerCollection"]!;
             this._surveyerCollection = _database.GetCollection<surveyers>(this.surveyerCollectionName);
+            this.applicantCollectionName = configuration["MonggoDbSettings:Collections:usersCollection"]!;
+            this._applicantCollection = _database.GetCollection<Applicant>(this.applicantCollectionName);
+            this.companyCollectionName = configuration["MonggoDbSettings:Collections:companiesCollection"]!;
+            this._companyCollection = _database.GetCollection<Company>(this.companyCollectionName);
             this.appPass = configuration["Email:appPass"]!;
             this.emailClient = configuration["Email:emailClient"]!;
             this.linkSelf = configuration["Link:linkSelf"]!;
             this.tracelog = new TracelogAccount();
+            this.generalFunction1 = new GeneralFunction1();
         }
 
         [HttpGet]
@@ -182,11 +195,11 @@ namespace AdminJobWeb.Controllers
                     }
 
 
-                    if (surveyer.loginCount == 4 && surveyer.lastLogin.AddMinutes(5) > DateTime.UtcNow)
+                    if (surveyer.loginCount == 4 && surveyer.lastLogin?.AddMinutes(5) > DateTime.UtcNow)
                     {
-                        TimeSpan diff = surveyer.lastLogin.AddMinutes(5) - DateTime.UtcNow;
-                        int diffMin = diff.Minutes;
-                        int diffSec = diff.Seconds;
+                        TimeSpan? diff = surveyer.lastLogin?.AddMinutes(5) - DateTime.UtcNow;
+                        int? diffMin = diff?.Minutes;
+                        int? diffSec = diff?.Seconds;
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
                         return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
                     }
@@ -241,11 +254,11 @@ namespace AdminJobWeb.Controllers
                     HttpContext.Session.SetString("loginAs", "Survey");
                     HttpContext.Session.SetString("username", surveyer.username);
                     HttpContext.Session.SetString("email", surveyer.email);
-                    if (surveyer.passwordExpired.AddDays(-7) < DateTime.UtcNow)
+                    if (surveyer.passwordExpired?.AddDays(-7) < DateTime.UtcNow)
                     {
-                        int daysExp = surveyer.passwordExpired.Day - DateTime.UtcNow.Day;
+                        int? daysExp = surveyer.passwordExpired?.Day - DateTime.UtcNow.Day;
                         tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
-                        HttpContext.Session.SetInt32("passExpired", daysExp);
+                        HttpContext.Session.SetInt32("passExpired", (int)daysExp!);
                     }
                     tracelog.WriteLog($"User : {username}, Success Login");
                     return RedirectToAction("Index", "Home");
@@ -271,7 +284,7 @@ namespace AdminJobWeb.Controllers
         {
             try
             {
-                var keyReset = $"email:{username}";
+                var keyReset = $"{username}_resetPassword";
                 if (_cache.TryGetValue(keyReset, out _))
                 {
                     return Content("<script>alert('Harap tunggu sebentar untuk reset password!');window.location.href='/Account/Index';</script>", "text/html");
@@ -303,7 +316,7 @@ namespace AdminJobWeb.Controllers
                     }
                 }
 
-                var key = GenerateRandomKey();
+                var key = generalFunction1.GenerateRandomKey();
                 string resetFor = admin != null ? "Admin" : "Surveyer";
                 string subject = $"Reset Password Akun {resetFor}";
                 string usernameEmail = admin != null ? $"<b>Username</b> : {admin.username}" : $"<b>Username</b> : {surveyer.username}";
@@ -322,7 +335,7 @@ namespace AdminJobWeb.Controllers
                     </div>
                     <br/>
                      <div>
-                        <b>Link</b> : <a href='{linkSelf}/Account/CreateResetPassword?username={username}&key={key}'>{linkSelf}/username={username}&key={key}</a>
+                        <b>Link</b> : <a href='{linkSelf}/Account/CreateResetPassword?username={username}&key={key}'>{linkSelf}/Account/CreateResetPassword?username={username}&key={key}</a>
                     </div>
                     <br/>
                     <br/>
@@ -577,22 +590,6 @@ namespace AdminJobWeb.Controllers
             return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
         }
 
-        public static string GenerateRandomKey()
-        {
-            int size = 16;
-            var randomNumber = new byte[size];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-            }
-
-            string token = Convert.ToBase64String(randomNumber)
-                             .Replace("+", "-")
-                             .Replace("/", "_")
-                             .Replace("=", "");
-
-            return token;
-        }
 
         [HttpGet]
         public ActionResult LogOut()

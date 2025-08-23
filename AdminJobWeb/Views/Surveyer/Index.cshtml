@@ -1,0 +1,148 @@
+﻿@model IEnumerable<AdminJobWeb.Models.Account.surveyers>
+@{
+    ViewData["Title"] = "Admin Dashboard - Surveyer Management";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="card-title">Surveyer List</h5>
+        @if (ViewBag.role == 1)
+        {
+            <button id="addSurveyer" class="btn btn-primary btn-sm">
+                <i class="bx bx-plus me-1"></i> Add New Surveyer
+            </button>
+        }
+    </div>
+    <div class="card-body">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @{
+                        var i = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@item.username</td>
+                                <td>@item.nama</td>
+                                <td>@item.email</td>
+                                <td>
+                                    @if (item.statusAccount == "Active" && item.statusEnrole)
+                                    {
+                                        <span class="badge bg-label-success me-1">Active</span>
+                                    }
+                                    else if (!item.statusEnrole && item.password == null)
+                                    {
+                                        <span class="badge bg-label-secondary me-1">Creating Password</span>
+                                    }
+                                    else if (item.statusAccount == "Block")
+                                    {
+                                        <span class="badge bg-label-danger me-1">Blocked</span>
+                                    }
+                                    else if (item.password != null && !item.statusEnrole && item.approvalTime == DateTime.MinValue)
+                                    {
+                                        <span class="badge bg-label-warning me-1">Pending Approval</span>
+                                    }
+                                    else if (item.approvalTime != DateTime.MinValue && !item.statusEnrole)
+                                    {
+                                        <span class="badge bg-label-info me-1">Rejected</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.password != null && !item.statusEnrole && item.approvalTime == null)
+                                    {
+                                        <form asp-action="ApprovalNewSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bx bx-check me-1"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form asp-action="RejectNewSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-warning btn-sm">
+                                                <i class="bx bx-x me-1"></i> Reject
+                                            </button>
+                                        </form>
+                                    }
+                                    else if(item.password!=null && item.statusEnrole)
+                                    {
+                                        @if (item.statusAccount == "Active")
+                                        {
+                                            <form asp-action="BlockSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@item._id" />
+                                                <button type="submit" class="btn btn-warning btn-sm">
+                                                    <i class="bx bx-x me-1"></i> Block
+                                                </button>
+                                            </form>
+                                        }
+
+                                        else if (item.statusAccount == "Block")
+                                        {
+                                            <form asp-action="ActivateSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@item._id" />
+                                                <button type="submit" class="btn btn-info btn-sm">
+                                                    <i class="bx bx-x me-1"></i> Activate
+                                                </button>
+                                            </form>
+                                        }
+                                    }
+
+                                    <form asp-action="DeleteSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item._id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bx bx-x me-1"></i> Delete Surveyer
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            i++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    </div>
+</div>
+
+
+@section PageScripts {
+    <script>
+        $(document).ready(function () {
+            $("#addSurveyer").on("click", function (e) {
+                e.preventDefault();
+
+                var url = "/Surveyer/AddSurveyer";
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    cache: false,
+                    success: function (data) {
+                        $("#exampleModal .modal-dialog").html(data);
+                        $("#exampleModal").modal('show');
+                    },
+                    error: function (xhr, status, err) {
+                        console.error("AJAX error:", status, err);
+                        alert("Gagal memuat form. Cek console untuk detail.");
+                    }
+                });
+            });
+        });
+    </script>
+}
