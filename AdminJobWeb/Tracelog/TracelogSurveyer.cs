@@ -1,10 +1,10 @@
 ﻿namespace AdminJobWeb.Tracelog
 {
-    public class TracelogAccount
+    public class TracelogSurveyer
     {
         public void WriteLog(string text)
         {
-            var folderTracelog = Path.Combine(Environment.CurrentDirectory, "TraceLog", "Tracelog Account");
+            var folderTracelog = Path.Combine(Environment.CurrentDirectory, "TraceLog", "Tracelog Surveyer");
 
             if (!Directory.Exists(folderTracelog))
             {

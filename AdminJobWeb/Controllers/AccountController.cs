@@ -19,17 +19,19 @@ namespace AdminJobWeb.Controllers
     {
         private readonly IMongoCollection<admin> _adminCollection;
         private readonly IMongoCollection<KeyGenerate> _keyGenerateCollection;
+        private readonly IMongoCollection<surveyers> _surveyerCollection;
         private readonly IMongoDatabase _database;
         private IConfiguration congfiguration;
         private readonly IMemoryCache _cache;
         private string databaseName;
         private string adminCollectionName;
         private string keyGenerateCollectionName;
+        private string surveyerCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
         private TracelogAccount tracelog;
-        public AccountController(IMongoClient mongoClient, IConfiguration configuration,IMemoryCache cache)
+        public AccountController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
             this._cache = cache;
             this.congfiguration = configuration;
@@ -39,6 +41,8 @@ namespace AdminJobWeb.Controllers
             this._adminCollection = _database.GetCollection<admin>(this.adminCollectionName);
             this.keyGenerateCollectionName = configuration["MonggoDbSettings:Collections:keyGenerateCollection"]!;
             this._keyGenerateCollection = _database.GetCollection<KeyGenerate>(this.keyGenerateCollectionName);
+            this.surveyerCollectionName = configuration["MonggoDbSettings:Collections:surveyerCollection"]!;
+            this._surveyerCollection = _database.GetCollection<surveyers>(this.surveyerCollectionName);
             this.appPass = configuration["Email:appPass"]!;
             this.emailClient = configuration["Email:emailClient"]!;
             this.linkSelf = configuration["Link:linkSelf"]!;
@@ -88,81 +92,164 @@ namespace AdminJobWeb.Controllers
                                  Builders<admin>.Filter.Eq(p => p.statusAccount, "Active")))
                              .FirstOrDefaultAsync();
 
-                if (admin == null)
+                if (admin != null)
                 {
-                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
-                }
 
-                if (admin.loginCount == 4 && admin.lastLogin.AddMinutes(5) > DateTime.UtcNow)
-                {
-                    TimeSpan diff = admin.lastLogin.AddMinutes(5) - DateTime.UtcNow;
-                    int diffMin = diff.Minutes;
-                    int diffSec = diff.Seconds;
-                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
-                    return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
-                }
-
-                tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
-
-                var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-                tracelog.WriteLog($"User : {username}, Start Hash Password");
-                using (var hmac = new HMACSHA512(admin.saltHash))
-                {
-                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                    for (int i = 0; i < computedHash.Length; i++)
+                    if (admin.loginCount == 4 && admin.lastLogin.AddMinutes(5) > DateTime.UtcNow)
                     {
-
-                        if (computedHash[i] != admin.password[i])
-                        {
-                            var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1).Set(p => p.lastLogin, DateTime.UtcNow);
-                            await _adminCollection.UpdateOneAsync(filter, updateWrongPassword);
-                            if (admin.loginCount < 5)
-                            {
-                                if (admin.loginCount == 3)
-                                {
-                                    HttpContext.Session.SetString("waiting", "True");
-                                    TimeSpan diff = DateTime.UtcNow.AddMinutes(5) - DateTime.UtcNow;
-                                    int diffMin = diff.Minutes;
-                                    int diffSec = diff.Seconds;
-                                    HttpContext.Session.SetInt32("diffMin", diffMin);
-                                    HttpContext.Session.SetInt32("diffSec", diffSec);
-                                    HttpContext.Session.SetString("dateWrong", DateTime.UtcNow.ToString());
-                                }
-                                HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
-                                tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
-                            }
-                            else
-                            {
-                                var updateBlock = Builders<admin>.Update.Set(p => p.statusAccount, "Block");
-                                await _adminCollection.UpdateOneAsync(filter, updateBlock);
-                                tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
-                            }
-                        }
-
+                        TimeSpan diff = admin.lastLogin.AddMinutes(5) - DateTime.UtcNow;
+                        int diffMin = diff.Minutes;
+                        int diffSec = diff.Seconds;
+                        tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
+                        return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
                     }
+
+                    tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
+
+                    var filter = Builders<admin>.Filter.Eq(p => p.username, username);
+                    tracelog.WriteLog($"User : {username}, Start Hash Password");
+                    using (var hmac = new HMACSHA512(admin.saltHash))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != admin.password[i])
+                            {
+                                var updateWrongPassword = Builders<admin>.Update.Set(p => p.loginCount, admin.loginCount + 1).Set(p => p.lastLogin, DateTime.UtcNow);
+                                await _adminCollection.UpdateOneAsync(filter, updateWrongPassword);
+                                if (admin.loginCount < 5)
+                                {
+                                    if (admin.loginCount == 3)
+                                    {
+                                        HttpContext.Session.SetString("waiting", "True");
+                                        TimeSpan diff = DateTime.UtcNow.AddMinutes(5) - DateTime.UtcNow;
+                                        int diffMin = diff.Minutes;
+                                        int diffSec = diff.Seconds;
+                                        HttpContext.Session.SetInt32("diffMin", diffMin);
+                                        HttpContext.Session.SetInt32("diffSec", diffSec);
+                                        HttpContext.Session.SetString("dateWrong", DateTime.UtcNow.ToString());
+                                    }
+                                    HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
+                                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                    return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                }
+                                else
+                                {
+                                    var updateBlock = Builders<admin>.Update.Set(p => p.statusAccount, "Block");
+                                    await _adminCollection.UpdateOneAsync(filter, updateBlock);
+                                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                    return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                }
+                            }
+
+                        }
+                    }
+
+                    tracelog.WriteLog($"User : {username}, Success Hash Password");
+
+                    var updateSuccress = Builders<admin>.Update.Set(p => p.loginCount, 0).Set(p => p.lastLogin, DateTime.UtcNow);
+                    await _adminCollection.UpdateOneAsync(filter, updateSuccress);
+                    HttpContext.Session.SetString("loginAs", "Admin");
+                    HttpContext.Session.SetString("username", admin.username);
+                    HttpContext.Session.SetString("email", admin.email);
+                    HttpContext.Session.SetInt32("role", admin.roleAdmin);
+                    if (admin.passwordExpired.AddDays(-7) < DateTime.UtcNow)
+                    {
+                        int daysExp = admin.passwordExpired.Day - DateTime.UtcNow.Day;
+                        tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
+                        HttpContext.Session.SetInt32("passExpired", daysExp);
+                    }
+                    HttpContext.Session.SetInt32("role", admin.roleAdmin);
+
+                    tracelog.WriteLog($"User : {username}, Success Login");
+                    return RedirectToAction("Index", "Home");
                 }
-
-                tracelog.WriteLog($"User : {username}, Success Hash Password");
-
-                var updateSuccress = Builders<admin>.Update.Set(p => p.loginCount, 0).Set(p => p.lastLogin, DateTime.UtcNow);
-                await _adminCollection.UpdateOneAsync(filter, updateSuccress);
-                HttpContext.Session.SetString("username", admin.username);
-                HttpContext.Session.SetString("email", admin.email);
-                HttpContext.Session.SetInt32("role", admin.roleAdmin);
-                if (admin.passwordExpired.AddDays(-7) < DateTime.UtcNow)
+                else
                 {
-                    int daysExp = admin.passwordExpired.Day - DateTime.UtcNow.Day;
-                    tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
-                    HttpContext.Session.SetInt32("passExpired", daysExp);
-                }
-                HttpContext.Session.SetInt32("role", admin.roleAdmin);
+                    var surveyer = await _surveyerCollection
+                           .Find(Builders<surveyers>.Filter.And(
+                               Builders<surveyers>.Filter.Eq(p => p.username, username),
+                               Builders<surveyers>.Filter.Eq(p => p.statusEnrole, true),
+                               Builders<surveyers>.Filter.Eq(p => p.statusAccount, "Active")))
+                           .FirstOrDefaultAsync();
 
-                tracelog.WriteLog($"User : {username}, Success Login");
-                return RedirectToAction("Index", "Home");
+                    if (surveyer == null)
+                    {
+                        tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
+                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                    }
+
+
+                    if (surveyer.loginCount == 4 && surveyer.lastLogin.AddMinutes(5) > DateTime.UtcNow)
+                    {
+                        TimeSpan diff = surveyer.lastLogin.AddMinutes(5) - DateTime.UtcNow;
+                        int diffMin = diff.Minutes;
+                        int diffSec = diff.Seconds;
+                        tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
+                        return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
+                    }
+
+                    tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
+
+                    var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
+                    tracelog.WriteLog($"User : {username}, Start Hash Password");
+                    using (var hmac = new HMACSHA512(surveyer.saltHash))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != surveyer.password[i])
+                            {
+                                var updateWrongPassword = Builders<surveyers>.Update.Set(p => p.loginCount, surveyer.loginCount + 1).Set(p => p.lastLogin, DateTime.UtcNow);
+                                await _surveyerCollection.UpdateOneAsync(filter, updateWrongPassword);
+                                if (surveyer.loginCount < 5)
+                                {
+                                    if (surveyer.loginCount == 3)
+                                    {
+                                        HttpContext.Session.SetString("waiting", "True");
+                                        TimeSpan diff = DateTime.UtcNow.AddMinutes(5) - DateTime.UtcNow;
+                                        int diffMin = diff.Minutes;
+                                        int diffSec = diff.Seconds;
+                                        HttpContext.Session.SetInt32("diffMin", diffMin);
+                                        HttpContext.Session.SetInt32("diffSec", diffSec);
+                                        HttpContext.Session.SetString("dateWrong", DateTime.UtcNow.ToString());
+                                    }
+                                    HttpContext.Session.SetInt32("loginCount", surveyer.loginCount + 1);
+                                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                    return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                }
+                                else
+                                {
+                                    var updateBlock = Builders<surveyers>.Update.Set(p => p.statusAccount, "Block");
+                                    await _surveyerCollection.UpdateOneAsync(filter, updateBlock);
+                                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
+                                    return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                }
+                            }
+
+                        }
+                    }
+
+                    tracelog.WriteLog($"User : {username}, Success Hash Password");
+
+                    var updateSuccress = Builders<surveyers>.Update.Set(p => p.loginCount, 0).Set(p => p.lastLogin, DateTime.UtcNow);
+                    await _surveyerCollection.UpdateOneAsync(filter, updateSuccress);
+                    HttpContext.Session.SetString("loginAs", "Survey");
+                    HttpContext.Session.SetString("username", surveyer.username);
+                    HttpContext.Session.SetString("email", surveyer.email);
+                    if (surveyer.passwordExpired.AddDays(-7) < DateTime.UtcNow)
+                    {
+                        int daysExp = surveyer.passwordExpired.Day - DateTime.UtcNow.Day;
+                        tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
+                        HttpContext.Session.SetInt32("passExpired", daysExp);
+                    }
+                    tracelog.WriteLog($"User : {username}, Success Login");
+                    return RedirectToAction("Index", "Home");
+                }
             }
             catch (Exception e)
             {
@@ -185,37 +272,53 @@ namespace AdminJobWeb.Controllers
             try
             {
                 var keyReset = $"email:{username}";
-                if(_cache.TryGetValue(keyReset, out _))
+                if (_cache.TryGetValue(keyReset, out _))
                 {
                     return Content("<script>alert('Harap tunggu sebentar untuk reset password!');window.location.href='/Account/Index';</script>", "text/html");
                 }
                 tracelog.WriteLog($"User : {username}, Start Reset Password");
                 tracelog.WriteLog($"User : {username}, Start Hit Database Admin");
-                var admin = await _adminCollection
-                 .Find(Builders<admin>.Filter.And(
-                     Builders<admin>.Filter.Eq(p => p.username, username),
-                     Builders<admin>.Filter.Eq(p => p.email, email)
-                 )).FirstOrDefaultAsync();
+                surveyers surveyer = new surveyers();
+                admin admin = new admin();
+
+                admin = await _adminCollection
+                .Find(Builders<admin>.Filter.And(
+                    Builders<admin>.Filter.Eq(p => p.username, username),
+                    Builders<admin>.Filter.Eq(p => p.email, email)
+                )).FirstOrDefaultAsync();
 
                 if (admin == null)
                 {
-                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                    surveyer = await _surveyerCollection
+                          .Find(Builders<surveyers>.Filter.And(
+                              Builders<surveyers>.Filter.Eq(p => p.username, username),
+                              Builders<surveyers>.Filter.Eq(p => p.statusEnrole, true),
+                              Builders<surveyers>.Filter.Eq(p => p.statusAccount, "Active")))
+                          .FirstOrDefaultAsync();
+
+                    if (surveyer == null)
+                    {
+                        tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
+                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                    }
                 }
 
                 var key = GenerateRandomKey();
-                string subject = "Reset Password Akun Admin";
+                string resetFor = admin != null ? "Admin" : "Surveyer";
+                string subject = $"Reset Password Akun {resetFor}";
+                string usernameEmail = admin != null ? $"<b>Username</b> : {admin.username}" : $"<b>Username</b> : {surveyer.username}";
                 string body = @$"<html>
                 <header>
-                    <h3>Link Untuk Reset Password</h3>
+                    <h3>Link Untuk Reset Password {resetFor}</h3>
                 </header>
                 <body>
                     <div>
-                        Berikut merupakan link untuk reset password dengan akun:
+                        Berikut merupakan link untuk reset password {resetFor} dengan akun:
                     <div>
                     <br/>
                     <br/>
                     <div>
-                        <b>Username</b> : {admin.username}
+                       {usernameEmail}
                     </div>
                     <br/>
                      <div>
@@ -242,7 +345,7 @@ namespace AdminJobWeb.Controllers
                     Credentials = new NetworkCredential(emailClient, appPass)
                 };
 
-                using (var message = new MailMessage(emailClient, admin.email)
+                using (var message = new MailMessage(emailClient, admin!=null?admin.email:surveyer.email)
                 {
                     Subject = subject,
                     Body = body,
@@ -306,84 +409,171 @@ namespace AdminJobWeb.Controllers
             {
                 return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
             }
+            surveyers surveyer = new surveyers();
+            admin admin = new admin();
 
-            var admin = await _adminCollection
+            admin = await _adminCollection
                         .Find(Builders<admin>.Filter.Eq(p => p.username, username))
                         .FirstOrDefaultAsync();
 
+            //admin
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
-            }
+                surveyer = await _surveyerCollection
+                      .Find(Builders<surveyers>.Filter.And(
+                          Builders<surveyers>.Filter.Eq(p => p.username, username),
+                          Builders<surveyers>.Filter.Eq(p => p.statusEnrole, true),
+                          Builders<surveyers>.Filter.Eq(p => p.statusAccount, "Active")))
+                      .FirstOrDefaultAsync();
 
-            bool checkPassNow = true;
-            bool checkPassOld = true;
-            using (var hmac = new HMACSHA512(admin.saltHash))
-            {
-                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                for (int i = 0; i < computedHash.Length; i++)
+                if (surveyer == null)
                 {
-
-                    if (computedHash[i] != admin.password[i])
-                    {
-                        checkPassNow = false;
-                        break;
-                    }
+                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
+                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
                 }
             }
 
-            if (checkPassNow == true)
+            if (admin != null)
             {
-                return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-            }
-
-
-            using (var hmac = new HMACSHA512(admin.saltHashLama))
-            {
-                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                for (int i = 0; i < computedHash.Length; i++)
+                bool checkPassNow = true;
+                bool checkPassOld = true;
+                using (var hmac = new HMACSHA512(admin.saltHash))
                 {
+                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
-                    if (computedHash[i] != admin.passwordLama[i])
+                    for (int i = 0; i < computedHash.Length; i++)
                     {
-                        checkPassOld = false;
-                        break;
+
+                        if (computedHash[i] != admin.password[i])
+                        {
+                            checkPassNow = false;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (checkPassOld == true)
+                if (checkPassNow == true)
+                {
+                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                }
+
+
+                using (var hmac = new HMACSHA512(admin.saltHashLama))
+                {
+                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                    for (int i = 0; i < computedHash.Length; i++)
+                    {
+
+                        if (computedHash[i] != admin.passwordLama[i])
+                        {
+                            checkPassOld = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (checkPassOld == true)
+                {
+                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                }
+
+                byte[] passwordSalt = [];
+                byte[] passwordHash = [];
+                using (var hmac = new HMACSHA512())
+                {
+                    passwordSalt = hmac.Key;
+                    passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                }
+
+                var filterKey = Builders<KeyGenerate>.Filter.And(
+                    Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
+                    Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+                    );
+                var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+                var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
+
+                var filter = Builders<admin>.Filter.Eq(p => p.username, username);
+                var update = Builders<admin>.Update.
+                    Set(p => p.password, passwordHash).
+                    Set(p => p.loginCount, 0).
+                    Set(p => p.saltHash, passwordSalt).
+                    Set(p => p.saltHashLama, admin.saltHash).
+                    Set(p => p.passwordLama, admin.password).
+                    Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                var result = await _adminCollection.UpdateOneAsync(filter, update);
+            }
+            //surveyer
+            else
             {
-                return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                bool checkPassNow = true;
+                bool checkPassOld = true;
+                using (var hmac = new HMACSHA512(surveyer.saltHash))
+                {
+                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                    for (int i = 0; i < computedHash.Length; i++)
+                    {
+
+                        if (computedHash[i] != surveyer.password[i])
+                        {
+                            checkPassNow = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (checkPassNow == true)
+                {
+                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                }
+
+
+                using (var hmac = new HMACSHA512(surveyer.saltHashLama))
+                {
+                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                    for (int i = 0; i < computedHash.Length; i++)
+                    {
+
+                        if (computedHash[i] != surveyer.passwordLama[i])
+                        {
+                            checkPassOld = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (checkPassOld == true)
+                {
+                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                }
+
+                byte[] passwordSalt = [];
+                byte[] passwordHash = [];
+                using (var hmac = new HMACSHA512())
+                {
+                    passwordSalt = hmac.Key;
+                    passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                }
+
+                var filterKey = Builders<KeyGenerate>.Filter.And(
+                    Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
+                    Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+                    );
+                var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+                var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
+
+                var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
+                var update = Builders<surveyers>.Update.
+                    Set(p => p.password, passwordHash).
+                    Set(p => p.loginCount, 0).
+                    Set(p => p.saltHash, passwordSalt).
+                    Set(p => p.saltHashLama, surveyer.saltHash).
+                    Set(p => p.passwordLama, surveyer.password).
+                    Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                var result = await _surveyerCollection.UpdateOneAsync(filter, update);
             }
-
-            byte[] passwordSalt = [];
-            byte[] passwordHash = [];
-            using (var hmac = new HMACSHA512())
-            {
-                passwordSalt = hmac.Key;
-                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            }
-
-            var filterKey = Builders<KeyGenerate>.Filter.And(
-                Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
-                Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
-                );
-            var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
-            var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
-
-            var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-            var update = Builders<admin>.Update.
-                Set(p => p.password, passwordHash).
-                Set(p => p.loginCount, 0).
-                Set(p => p.saltHash, passwordSalt).
-                Set(p => p.saltHashLama, admin.saltHash).
-                Set(p=>p.passwordLama,admin.password).
-                Set(p=>p.passwordExpired,DateTime.UtcNow.AddMonths(3));
-            var result = await _adminCollection.UpdateOneAsync(filter, update);
-
             return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
         }
 
