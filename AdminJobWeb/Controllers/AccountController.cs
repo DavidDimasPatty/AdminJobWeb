@@ -2,6 +2,7 @@
 using AdminJobWeb.Tracelog;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
@@ -20,6 +21,7 @@ namespace AdminJobWeb.Controllers
         private readonly IMongoCollection<KeyGenerate> _keyGenerateCollection;
         private readonly IMongoDatabase _database;
         private IConfiguration congfiguration;
+        private readonly IMemoryCache _cache;
         private string databaseName;
         private string adminCollectionName;
         private string keyGenerateCollectionName;
@@ -27,8 +29,9 @@ namespace AdminJobWeb.Controllers
         private string emailClient;
         private string linkSelf;
         private TracelogAccount tracelog;
-        public AccountController(IMongoClient mongoClient, IConfiguration configuration)
+        public AccountController(IMongoClient mongoClient, IConfiguration configuration,IMemoryCache cache)
         {
+            this._cache = cache;
             this.congfiguration = configuration;
             this.databaseName = configuration["MonggoDbSettings:DatabaseName"]!;
             this._database = mongoClient.GetDatabase(this.databaseName);
@@ -181,6 +184,11 @@ namespace AdminJobWeb.Controllers
         {
             try
             {
+                var keyReset = $"email:{username}";
+                if(_cache.TryGetValue(keyReset, out _))
+                {
+                    return Content("<script>alert('Harap tunggu sebentar untuk reset password!');window.location.href='/Account/Index';</script>", "text/html");
+                }
                 tracelog.WriteLog($"User : {username}, Start Reset Password");
                 tracelog.WriteLog($"User : {username}, Start Hit Database Admin");
                 var admin = await _adminCollection
@@ -253,7 +261,11 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _keyGenerateCollection.InsertOneAsync(keyGenerate);
-
+                _cache.Set(keyReset, true, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    Size = 1
+                });
                 return Content("<script>alert('Mohon Cek Email!');window.location.href='/Account/Index';</script>", "text/html");
             }
             catch (Exception e)
@@ -304,6 +316,49 @@ namespace AdminJobWeb.Controllers
                 return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
             }
 
+            bool checkPassNow = true;
+            bool checkPassOld = true;
+            using (var hmac = new HMACSHA512(admin.saltHash))
+            {
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                for (int i = 0; i < computedHash.Length; i++)
+                {
+
+                    if (computedHash[i] != admin.password[i])
+                    {
+                        checkPassNow = false;
+                        break;
+                    }
+                }
+            }
+
+            if (checkPassNow == true)
+            {
+                return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+            }
+
+
+            using (var hmac = new HMACSHA512(admin.saltHashLama))
+            {
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                for (int i = 0; i < computedHash.Length; i++)
+                {
+
+                    if (computedHash[i] != admin.passwordLama[i])
+                    {
+                        checkPassOld = false;
+                        break;
+                    }
+                }
+            }
+
+            if (checkPassOld == true)
+            {
+                return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+            }
+
             byte[] passwordSalt = [];
             byte[] passwordHash = [];
             using (var hmac = new HMACSHA512())
@@ -320,7 +375,13 @@ namespace AdminJobWeb.Controllers
             var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
 
             var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-            var update = Builders<admin>.Update.Set(p => p.password, passwordHash).Set(p => p.loginCount, 0).Set(p => p.saltHash, passwordSalt);
+            var update = Builders<admin>.Update.
+                Set(p => p.password, passwordHash).
+                Set(p => p.loginCount, 0).
+                Set(p => p.saltHash, passwordSalt).
+                Set(p => p.saltHashLama, admin.saltHash).
+                Set(p=>p.passwordLama,admin.password).
+                Set(p=>p.passwordExpired,DateTime.UtcNow.AddMonths(3));
             var result = await _adminCollection.UpdateOneAsync(filter, update);
 
             return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
