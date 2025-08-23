@@ -15,6 +15,7 @@ using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
 using AdminJobWeb.AidFunction;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 namespace AdminJobWeb.Controllers
 {
@@ -358,7 +359,7 @@ namespace AdminJobWeb.Controllers
                     Credentials = new NetworkCredential(emailClient, appPass)
                 };
 
-                using (var message = new MailMessage(emailClient, admin!=null?admin.email:surveyer.email)
+                using (var message = new MailMessage(emailClient, admin != null ? admin.email : surveyer.email)
                 {
                     Subject = subject,
                     Body = body,
@@ -418,178 +419,353 @@ namespace AdminJobWeb.Controllers
         [HttpPost]
         public async Task<ActionResult> CreateResetPassword(string username, string password, string passwordRet, string key)
         {
-            if (password != passwordRet)
+            try
             {
-                return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-            }
-            surveyers surveyer = new surveyers();
-            admin admin = new admin();
-
-            admin = await _adminCollection
-                        .Find(Builders<admin>.Filter.Eq(p => p.username, username))
-                        .FirstOrDefaultAsync();
-
-            //admin
-            if (admin == null)
-            {
-                surveyer = await _surveyerCollection
-                      .Find(Builders<surveyers>.Filter.And(
-                          Builders<surveyers>.Filter.Eq(p => p.username, username),
-                          Builders<surveyers>.Filter.Eq(p => p.statusEnrole, true),
-                          Builders<surveyers>.Filter.Eq(p => p.statusAccount, "Active")))
-                      .FirstOrDefaultAsync();
-
-                if (surveyer == null)
+                if (password != passwordRet)
                 {
-                    tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                    return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
                 }
-            }
+                surveyers surveyer = new surveyers();
+                admin admin = new admin();
 
-            if (admin != null)
-            {
-                bool checkPassNow = true;
-                bool checkPassOld = true;
-                using (var hmac = new HMACSHA512(admin.saltHash))
+                admin = await _adminCollection
+                            .Find(Builders<admin>.Filter.Eq(p => p.username, username))
+                            .FirstOrDefaultAsync();
+
+                //admin
+                if (admin == null)
                 {
-                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                    surveyer = await _surveyerCollection
+                          .Find(Builders<surveyers>.Filter.And(
+                              Builders<surveyers>.Filter.Eq(p => p.username, username),
+                              Builders<surveyers>.Filter.Eq(p => p.statusEnrole, true),
+                              Builders<surveyers>.Filter.Eq(p => p.statusAccount, "Active")))
+                          .FirstOrDefaultAsync();
 
-                    for (int i = 0; i < computedHash.Length; i++)
+                    if (surveyer == null)
                     {
-
-                        if (computedHash[i] != admin.password[i])
-                        {
-                            checkPassNow = false;
-                            break;
-                        }
+                        tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
+                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
                     }
                 }
 
-                if (checkPassNow == true)
+                if (admin != null)
                 {
-                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-                }
-
-
-                using (var hmac = new HMACSHA512(admin.saltHashLama))
-                {
-                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                    for (int i = 0; i < computedHash.Length; i++)
+                    bool checkPassNow = true;
+                    bool checkPassOld = true;
+                    using (var hmac = new HMACSHA512(admin.saltHash))
                     {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
-                        if (computedHash[i] != admin.passwordLama[i])
+                        for (int i = 0; i < computedHash.Length; i++)
                         {
-                            checkPassOld = false;
-                            break;
+
+                            if (computedHash[i] != admin.password[i])
+                            {
+                                checkPassNow = false;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (checkPassOld == true)
+                    if (checkPassNow == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    }
+
+
+                    using (var hmac = new HMACSHA512(admin.saltHashLama))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != admin.passwordLama[i])
+                            {
+                                checkPassOld = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (checkPassOld == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    }
+
+                    byte[] passwordSalt = [];
+                    byte[] passwordHash = [];
+                    using (var hmac = new HMACSHA512())
+                    {
+                        passwordSalt = hmac.Key;
+                        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                    }
+
+                    var filterKey = Builders<KeyGenerate>.Filter.And(
+                        Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
+                        Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+                        );
+                    var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+                    var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
+
+                    var filter = Builders<admin>.Filter.Eq(p => p.username, username);
+                    var update = Builders<admin>.Update.
+                        Set(p => p.password, passwordHash).
+                        Set(p => p.loginCount, 0).
+                        Set(p => p.saltHash, passwordSalt).
+                        Set(p => p.saltHashLama, admin.saltHash).
+                        Set(p => p.passwordLama, admin.password).
+                        Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                    var result = await _adminCollection.UpdateOneAsync(filter, update);
+                }
+                //surveyer
+                else
                 {
-                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    bool checkPassNow = true;
+                    bool checkPassOld = true;
+                    using (var hmac = new HMACSHA512(surveyer.saltHash))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != surveyer.password[i])
+                            {
+                                checkPassNow = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (checkPassNow == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    }
+
+
+                    using (var hmac = new HMACSHA512(surveyer.saltHashLama))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != surveyer.passwordLama[i])
+                            {
+                                checkPassOld = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (checkPassOld == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    }
+
+                    byte[] passwordSalt = [];
+                    byte[] passwordHash = [];
+                    using (var hmac = new HMACSHA512())
+                    {
+                        passwordSalt = hmac.Key;
+                        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                    }
+
+                    var filterKey = Builders<KeyGenerate>.Filter.And(
+                        Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
+                        Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
+                        );
+                    var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
+                    var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
+
+                    var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
+                    var update = Builders<surveyers>.Update.
+                        Set(p => p.password, passwordHash).
+                        Set(p => p.loginCount, 0).
+                        Set(p => p.saltHash, passwordSalt).
+                        Set(p => p.saltHashLama, surveyer.saltHash).
+                        Set(p => p.passwordLama, surveyer.password).
+                        Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                    var result = await _surveyerCollection.UpdateOneAsync(filter, update);
                 }
-
-                byte[] passwordSalt = [];
-                byte[] passwordHash = [];
-                using (var hmac = new HMACSHA512())
-                {
-                    passwordSalt = hmac.Key;
-                    passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-                }
-
-                var filterKey = Builders<KeyGenerate>.Filter.And(
-                    Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
-                    Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
-                    );
-                var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
-                var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
-
-                var filter = Builders<admin>.Filter.Eq(p => p.username, username);
-                var update = Builders<admin>.Update.
-                    Set(p => p.password, passwordHash).
-                    Set(p => p.loginCount, 0).
-                    Set(p => p.saltHash, passwordSalt).
-                    Set(p => p.saltHashLama, admin.saltHash).
-                    Set(p => p.passwordLama, admin.password).
-                    Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
-                var result = await _adminCollection.UpdateOneAsync(filter, update);
+                return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
             }
-            //surveyer
-            else
+            catch (Exception e)
             {
-                bool checkPassNow = true;
-                bool checkPassOld = true;
-                using (var hmac = new HMACSHA512(surveyer.saltHash))
-                {
-                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                    for (int i = 0; i < computedHash.Length; i++)
-                    {
-
-                        if (computedHash[i] != surveyer.password[i])
-                        {
-                            checkPassNow = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (checkPassNow == true)
-                {
-                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-                }
-
-
-                using (var hmac = new HMACSHA512(surveyer.saltHashLama))
-                {
-                    var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                    for (int i = 0; i < computedHash.Length; i++)
-                    {
-
-                        if (computedHash[i] != surveyer.passwordLama[i])
-                        {
-                            checkPassOld = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (checkPassOld == true)
-                {
-                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-                }
-
-                byte[] passwordSalt = [];
-                byte[] passwordHash = [];
-                using (var hmac = new HMACSHA512())
-                {
-                    passwordSalt = hmac.Key;
-                    passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-                }
-
-                var filterKey = Builders<KeyGenerate>.Filter.And(
-                    Builders<KeyGenerate>.Filter.Eq(p => p.username, username),
-                    Builders<KeyGenerate>.Filter.Eq(p => p.key, key)
-                    );
-                var updateKey = Builders<KeyGenerate>.Update.Set(p => p.used, "Y");
-                var resultKey = await _keyGenerateCollection.UpdateOneAsync(filterKey, updateKey);
-
-                var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
-                var update = Builders<surveyers>.Update.
-                    Set(p => p.password, passwordHash).
-                    Set(p => p.loginCount, 0).
-                    Set(p => p.saltHash, passwordSalt).
-                    Set(p => p.saltHashLama, surveyer.saltHash).
-                    Set(p => p.passwordLama, surveyer.password).
-                    Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
-                var result = await _surveyerCollection.UpdateOneAsync(filter, update);
+                Debug.WriteLine(e);
+                return Content($"<script>alert('{e.Message}');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
             }
-            return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
         }
 
+
+
+        [HttpGet]
+        public ActionResult EditPassword()
+        {
+            return View("EditPassword");
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> EditPassword(string passwordNow, string password, string passwordRet)
+        {
+            try
+            {
+
+                string role = HttpContext.Session.GetString("loginAs")!;
+                string username = HttpContext.Session.GetString("username")!;
+                if (password == passwordNow)
+                {
+                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                }
+
+                if (password != passwordRet)
+                {
+                    return Content($"<script>alert('Password Baru Tidak Sama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                }
+
+                surveyers surveyer = new surveyers();
+                admin admin = new admin();
+                bool checkPassOld = true;
+
+                if (role == "Admin")
+                {
+                    admin = await _adminCollection
+                          .Find(Builders<admin>.Filter.Eq(p => p.username, username))
+                          .FirstOrDefaultAsync();
+
+                    if (admin == null)
+                    {
+                        return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    }
+
+                    using (var hmac = new HMACSHA512(admin.saltHash))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(passwordNow));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != admin.password[i])
+                            {
+                                return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                            }
+
+                        }
+                    }
+
+                    using (var hmac = new HMACSHA512(admin.saltHashLama))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != admin.passwordLama[i])
+                            {
+                                checkPassOld = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (checkPassOld == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    }
+
+                    byte[] passwordSalt = [];
+                    byte[] passwordHash = [];
+                    using (var hmac = new HMACSHA512())
+                    {
+                        passwordSalt = hmac.Key;
+                        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                    }
+
+                    var filter = Builders<admin>.Filter.Eq(p => p.username, username);
+                    var update = Builders<admin>.Update.
+                        Set(p => p.password, passwordHash).
+                        Set(p => p.loginCount, 0).
+                        Set(p => p.saltHash, passwordSalt).
+                        Set(p => p.saltHashLama, admin.saltHash).
+                        Set(p => p.passwordLama, admin.password).
+                        Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                    var result = await _adminCollection.UpdateOneAsync(filter, update);
+                }
+                else
+                {
+                    surveyer = await _surveyerCollection
+                      .Find(Builders<surveyers>.Filter.And(
+                          Builders<surveyers>.Filter.Eq(p => p.username, username)))
+                      .FirstOrDefaultAsync();
+
+                    if (surveyer == null)
+                    {
+                        return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    }
+
+                    using (var hmac = new HMACSHA512(surveyer.saltHash))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(passwordNow));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != surveyer.password[i])
+                            {
+                                return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                            }
+
+                        }
+                    }
+
+                    using (var hmac = new HMACSHA512(surveyer.saltHashLama))
+                    {
+                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+                        for (int i = 0; i < computedHash.Length; i++)
+                        {
+
+                            if (computedHash[i] != surveyer.passwordLama[i])
+                            {
+                                checkPassOld = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (checkPassOld == true)
+                    {
+                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    }
+
+                    byte[] passwordSalt = [];
+                    byte[] passwordHash = [];
+                    using (var hmac = new HMACSHA512())
+                    {
+                        passwordSalt = hmac.Key;
+                        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                    }
+
+                    var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
+                    var update = Builders<surveyers>.Update.
+                        Set(p => p.password, passwordHash).
+                        Set(p => p.loginCount, 0).
+                        Set(p => p.saltHash, passwordSalt).
+                        Set(p => p.saltHashLama, surveyer.saltHash).
+                        Set(p => p.passwordLama, surveyer.password).
+                        Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
+                    var result = await _surveyerCollection.UpdateOneAsync(filter, update);
+                }
+                return Content("<script>alert('Berhasil Edit Password!');window.location.href='/Account/EditPassword'</script>", "text/html");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                return Content($"<script>alert('{e.Message}');window.location.href='/Account/EditPassword'</script>", "text/html");
+            }
+        }
 
         [HttpGet]
         public ActionResult LogOut()
