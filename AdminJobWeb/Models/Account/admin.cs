@@ -19,5 +19,8 @@ namespace AdminJobWeb.Models.Account
         public DateTime updateTime { get; set; }
         public bool statusEnrole { get; set; }
         public DateTime approvalTime { get; set; }
+        public DateTime passwordExpired { get; set; }
+        public byte[] passwordLama { get; set; }
+        public byte[] saltHashLama { get; set; }
     }
 }

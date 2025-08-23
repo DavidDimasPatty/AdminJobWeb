@@ -10,7 +10,6 @@ namespace AdminJobWeb.Models.Account
         public string username { get; set; }
         public string key { get; set; }
         public DateTime addTime { get; set; }
-
         public string used { get; set; }
     }
 }
