@@ -19,7 +19,7 @@
 </head>
 <body>
     <div class="w-100 h-100 col d-flex justify-content-center align-items-center">
-        <form method="post" asp-action="CreateAdmin" asp-controller="User">
+        <form method="post" asp-action="CreateAdmin" asp-controller="User" id="formCreate">
             <div class="card card-primary">
                 <div class="card-header">
                     <h2>Create New Admin</h2>
@@ -28,19 +28,100 @@
                     <div class="row gap-3">
                         <input type="text" name="email" class="form-control" value="@ViewBag.email" readonly />
                         <input type="text" name="username" class="form-control" placeholder="Enter Username" />
-                        <input type="password" name="password" class="form-control" placeholder="Enter Password" />
-                        <input type="password" name="passwordRet" class="form-control" placeholder="Re-Enter Password" />
+                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" />
+                        <input type="password" name="passwordRet" id="passwordRet" class="form-control" placeholder="Re-type Password" />
                         <input type="hidden" name="key" value="@ViewBag.key" />
+                    </div>
+                    <div class="col d-flex justify-content-center align-items-center mt-2">
+                        <b id="minKarakter" style="color:red">Minimal 8 Karakter </b> |
+                        <b id="minBesar" style="color:red">Terdapat Huruf Besar </b> |
+                        <b id="minKecil" style="color:red">Terdapat Huruf Kecil </b>
+                    </div>
+                    <div class="col d-flex justify-content-center align-items-center mt-2">
+                        <b id="minAngka" style="color:red">Terdapat Angka </b> |
+                        <b id="minSama" style="color:red">Password Sama </b>
                     </div>
                 </div>
                 <div class="card-footer">
                     <div class="row d-flex gap-3">
                         <input class="btn btn-danger text-light" type="submit" value="Create Account" />
-                     </div>
+                    </div>
                 </div>
             </div>
         </form>
     </div>
+
+    <script>
+        $(document).ready(function () {
+            function validatePassword() {
+                var pass = $("#password").val();
+                var passRet = $("#passwordRet").val();
+
+                if (pass.length >= 8) {
+                    $("#minKarakter").css("color", "green");
+                } else {
+                    $("#minKarakter").css("color", "red");
+                }
+
+                if (/[A-Z]/.test(pass)) {
+                    $("#minBesar").css("color", "green");
+                } else {
+                    $("#minBesar").css("color", "red");
+                }
+
+                if (/[a-z]/.test(pass)) {
+                    $("#minKecil").css("color", "green");
+                } else {
+                    $("#minKecil").css("color", "red");
+                }
+
+                if (/[0-9]/.test(pass)) {
+                    $("#minAngka").css("color", "green");
+                } else {
+                    $("#minAngka").css("color", "red");
+                }
+
+                if (pass && pass === passRet) {
+                    $("#minSama").css("color", "green");
+                } else {
+                    $("#minSama").css("color", "red");
+                }
+            }
+
+            $("#password, #passwordRet").on("keyup", function () {
+                validatePassword();
+            });
+
+            $("#formCreate").on("submit", function () {
+                var pass = $("#password").val();
+                var passRet = $("#passwordRet").val();
+                if (!(pass.length >= 8)) {
+                    alert("Password minimal memiliki 8 karakter!");
+                    return false;
+                }
+
+                if (!(/[A-Z]/.test(pass))) {
+                    alert("Password minimal memiliki 1 karakter besar!");
+                    return false;
+                }
+
+                if (!(/[a-z]/.test(pass))) {
+                    alert("Password minimal memiliki 1 karakter kecil!");
+                    return false;
+                }
+
+                if (!(/[0-9]/.test(pass))) {
+                    alert("Password minimal memiliki 1 angka!");
+                    return false;
+                }
+
+                if (!(pass && pass === passRet)) {
+                    alert("Password harus sama!");
+                    return false;
+                }
+            })
+        });
+    </script>
 </body>
 </html>
 

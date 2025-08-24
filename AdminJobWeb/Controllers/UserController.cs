@@ -1,4 +1,6 @@
 ﻿using AdminJobWeb.Models.Account;
+using AdminJobWeb.Models.Applicant;
+using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -15,11 +17,17 @@ namespace AdminJobWeb.Controllers
     {
         private readonly IMongoCollection<admin> _adminCollection;
         private readonly IMongoCollection<KeyGenerate> _keyGenerateCollection;
+        private readonly IMongoCollection<surveyers> _surveyerCollection;
+        private readonly IMongoCollection<Applicant> _applicantCollection;
+        private readonly IMongoCollection<Company> _companyCollection;
         private readonly IMongoDatabase _database;
 
         private string databaseName;
         private string adminCollectionName;
         private string keyGenerateCollectionName;
+        private string surveyerCollectionName;
+        private string applicantCollectionName;
+        private string companyCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
@@ -31,10 +39,16 @@ namespace AdminJobWeb.Controllers
             databaseName = configuration.GetValue<string>("MonggoDbSettings:DatabaseName")!;
             adminCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:adminCollection")!;
             keyGenerateCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:keyGenerateCollection")!;
+            surveyerCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:surveyerCollection")!;
+            applicantCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:usersCollection")!;
+            companyCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:companiesCollection")!;
 
             _database = mongoClient.GetDatabase(databaseName);
             _adminCollection = _database.GetCollection<admin>(adminCollectionName);
             _keyGenerateCollection = _database.GetCollection<KeyGenerate>(keyGenerateCollectionName);
+            _surveyerCollection = _database.GetCollection<surveyers>(surveyerCollectionName);
+            _applicantCollection = _database.GetCollection<Applicant>(applicantCollectionName);
+            _companyCollection = _database.GetCollection<Company>(companyCollectionName);
 
             appPass = configuration.GetValue<string>("Email:appPass")!;
             emailClient = configuration.GetValue<string>("Email:emailClient")!;
@@ -101,7 +115,7 @@ namespace AdminJobWeb.Controllers
         public async Task<ActionResult> SendFormAdmin()
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (string.IsNullOrEmpty(adminLogin) || HttpContext.Session.GetInt32("role") != 1)
+            if (HttpContext.Session.GetInt32("role") != 1)
             {
                 return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
             }
@@ -113,7 +127,6 @@ namespace AdminJobWeb.Controllers
         public async Task<ActionResult> SendFormAdmin(admin objData)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            string emailLogin = HttpContext.Session.GetString("email")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
                 return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
@@ -121,44 +134,57 @@ namespace AdminJobWeb.Controllers
 
             try
             {
-                var existingEmail = await _adminCollection
+                var existingEmailAdmin = await _adminCollection
                     .Find(Builders<admin>.Filter.Eq(p => p.email, objData.email))
-                    .FirstOrDefaultAsync();
+                    .CountDocumentsAsync();
 
-                if (existingEmail != null)
+                var existingEmailSurveyor = await _surveyerCollection
+                    .Find(Builders<surveyers>.Filter.Eq(p => p.email, objData.email))
+                    .CountDocumentsAsync();
+
+                var existingEmailApplicant = await _applicantCollection
+                    .Find(Builders<Applicant>.Filter.Eq(p => p.email, objData.email))
+                    .CountDocumentsAsync();
+
+                var existingEmailCompany = await _companyCollection
+                    .Find(Builders<Company>.Filter.Eq(p => p.email, objData.email))
+                    .CountDocumentsAsync();
+
+                if (existingEmailAdmin + existingEmailSurveyor + existingEmailApplicant + existingEmailCompany > 0)
                 {
-                    _tracelogUser.WriteLog($"User : {adminLogin}, Email sudah memiliki akun admin!");
-                    return Content($"<script>alert('Email sudah memiliki akun admin!');window.location.href='/User/Index'</script>", "text/html");
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Email sudah memiliki akun!");
+                    return Content($"<script>alert('Email sudah memiliki akun!');window.location.href='/User/Index'</script>", "text/html");
                 }
 
-                _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create New Admin to {objData.email}");
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create Admin Account to {objData.email}");
 
                 var key = GenerateRandomKey();
                 string subject = "Form Create Akun Admin";
                 string body = @$"<html>
-                <header>
-                    <h3>Link Form Create Akun Admin</h3>
-                </header>
-                <body>
-                    <div>
-                        Berikut merupakan link untuk form create akun admin:
-                    <div>
-                    <br/>
-                    <br/>
-                     <div>
-                        <b>Link</b> : <a href='{linkSelf}/User/CreateAdmin?username={objData.email}&key={key}'>{linkSelf}/username={objData.email}&key={key}</a>
-                    </div>
-                    <br/>
-                    <br/>
-                    <div>
-                        Terima Kasih,
-                    </div>
-                    <div>
-                        IT Dev Ikodora
-                    </div>
-                </body>
+                    <header>
+                        <h3>Link Form Create Akun Admin</h3>
+                    </header>
+                    <body>
+                        <div>
+                            Berikut merupakan link untuk form create akun admin:
+                        <div>
+                        <br/>
+                        <br/>
+                         <div>
+                            <b>Link</b> : <a href='{linkSelf}/User/CreateAdmin?username={objData.email}&key={key}'>{linkSelf}/username={objData.email}&key={key}</a>
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
 
-                </html>";
+                    </html>";
+
                 var smtp = new SmtpClient
                 {
                     Host = "smtp.gmail.com",
@@ -242,13 +268,29 @@ namespace AdminJobWeb.Controllers
                 _tracelogUser.WriteLog($"User : {dataObj.email}, Start Create New Admin");
                 _tracelogUser.WriteLog($"User : {dataObj.email}, Start Hit Database Admin");
 
-                var existingUsername = await _adminCollection
+                var existingUsernameAdmin = await _adminCollection
                     .Find(Builders<admin>.Filter.Eq(p => p.username, dataObj.username))
-                    .FirstOrDefaultAsync();
+                    .CountDocumentsAsync();
 
-                var existingEmail = await _adminCollection
+                var existingEmailAdmin = await _adminCollection
                     .Find(Builders<admin>.Filter.Eq(p => p.email, dataObj.email))
-                    .FirstOrDefaultAsync();
+                    .CountDocumentsAsync();
+
+                var existingUsernameSurveyor = await _surveyerCollection
+                    .Find(Builders<surveyers>.Filter.Eq(p => p.username, dataObj.username))
+                    .CountDocumentsAsync();
+
+                var existingEmailSurveyor = await _surveyerCollection
+                    .Find(Builders<surveyers>.Filter.Eq(p => p.email, dataObj.email))
+                    .CountDocumentsAsync();
+
+                var existingEmailApplicant = await _applicantCollection
+                    .Find(Builders<Applicant>.Filter.Eq(p => p.email, dataObj.email))
+                    .CountDocumentsAsync();
+
+                var existingEmailCompany = await _companyCollection
+                    .Find(Builders<Company>.Filter.Eq(p => p.email, dataObj.email))
+                    .CountDocumentsAsync();
 
                 // Input validation
                 if (string.IsNullOrEmpty(dataObj.username) || string.IsNullOrEmpty(dataObj.email))
@@ -257,7 +299,7 @@ namespace AdminJobWeb.Controllers
                     return Content($"<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
                 }
 
-                if (existingUsername != null)
+                if (existingUsernameAdmin + existingUsernameSurveyor > 0)
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Username Sudah Ada!");
                     return Content($"<script>alert('Username Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
@@ -269,7 +311,7 @@ namespace AdminJobWeb.Controllers
                     return Content($"<script>alert('Email Tidak Valid!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
                 }
 
-                if (existingEmail != null)
+                if (existingEmailAdmin + existingEmailSurveyor + existingEmailApplicant + existingEmailCompany > 0)
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Email Sudah Ada!");
                     return Content($"<script>alert('Email Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
