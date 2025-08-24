@@ -1,21 +1,18 @@
-﻿using AdminJobWeb.Models.Account;
+﻿using AdminJobWeb.AidFunction;
+using AdminJobWeb.Models.Account;
 using AdminJobWeb.Models.Applicant;
 using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
-using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
-using AdminJobWeb.AidFunction;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 namespace AdminJobWeb.Controllers
 {
@@ -26,6 +23,8 @@ namespace AdminJobWeb.Controllers
         private readonly IMongoCollection<surveyers> _surveyerCollection;
         private readonly IMongoCollection<Applicant> _applicantCollection;
         private readonly IMongoCollection<Company> _companyCollection;
+        private readonly IMongoCollection<MenuItem> _menuCollection;
+        private readonly IMongoCollection<Privilege> _privilegeCollection;
         private readonly IMongoDatabase _database;
         private IConfiguration congfiguration;
         private readonly IMemoryCache _cache;
@@ -35,6 +34,8 @@ namespace AdminJobWeb.Controllers
         private string surveyerCollectionName;
         private string applicantCollectionName;
         private string companyCollectionName;
+        private string menuCollectionName;
+        private string privilegeCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
@@ -56,6 +57,10 @@ namespace AdminJobWeb.Controllers
             this._applicantCollection = _database.GetCollection<Applicant>(this.applicantCollectionName);
             this.companyCollectionName = configuration["MonggoDbSettings:Collections:companiesCollection"]!;
             this._companyCollection = _database.GetCollection<Company>(this.companyCollectionName);
+            this.menuCollectionName = configuration["MonggoDbSettings:Collections:menuCollection"]!;
+            this._menuCollection = _database.GetCollection<MenuItem>(this.menuCollectionName);
+            this.privilegeCollectionName = configuration["MonggoDbSettings:Collections:privilegeCollection"]!;
+            this._privilegeCollection = _database.GetCollection<Privilege>(this.privilegeCollectionName);
             this.appPass = configuration["Email:appPass"]!;
             this.emailClient = configuration["Email:emailClient"]!;
             this.linkSelf = configuration["Link:linkSelf"]!;
@@ -176,6 +181,21 @@ namespace AdminJobWeb.Controllers
                         HttpContext.Session.SetInt32("passExpired", daysExp);
                     }
                     HttpContext.Session.SetInt32("role", admin.roleAdmin);
+
+                    // Get all privileges for based on role
+                    tracelog.WriteLog($"User : {username}, Start Get Menu Items");
+
+                    var privileges = await _privilegeCollection
+                        .Find(p => p.roleId == admin.roleAdmin)
+                        .ToListAsync();
+                    var menuIds = privileges.Select(p => p.menuId).ToList();
+                    var menuItems = await _menuCollection
+                        .Find(m => menuIds.Contains(m._id))
+                        .ToListAsync();
+
+                    TempData["menuItems"] = System.Text.Json.JsonSerializer.Serialize(menuItems);
+
+                    tracelog.WriteLog($"User : {username}, Success Get Menu Items");
 
                     tracelog.WriteLog($"User : {username}, Success Login");
                     return RedirectToAction("Index", "Home");

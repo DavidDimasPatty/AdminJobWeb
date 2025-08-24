@@ -1,4 +1,5 @@
-﻿using AdminJobWeb.Models.Account;
+﻿using AdminJobWeb.AidFunction;
+using AdminJobWeb.Models.Account;
 using AdminJobWeb.Models.Applicant;
 using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
@@ -33,6 +34,7 @@ namespace AdminJobWeb.Controllers
         private string linkSelf;
 
         private TracelogUser _tracelogUser;
+        private GeneralFunction1 _func;
 
         public UserController(IMongoClient mongoClient, IConfiguration configuration)
         {
@@ -55,6 +57,7 @@ namespace AdminJobWeb.Controllers
             linkSelf = configuration.GetValue<string>("Link:linkSelf")!;
 
             _tracelogUser = new TracelogUser();
+            _func = new GeneralFunction1();
         }
 
         private static string GenerateRandomKey()
@@ -158,7 +161,7 @@ namespace AdminJobWeb.Controllers
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create Admin Account to {objData.email}");
 
-                var key = GenerateRandomKey();
+                var key = _func.GenerateRandomKey();
                 string subject = "Form Create Akun Admin";
                 string body = @$"<html>
                     <header>
