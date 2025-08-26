@@ -1,0 +1,29 @@
+﻿@{
+    Layout = null;
+}
+@model List<AdminJobWeb.Models.Account.surveyers>
+
+<div class="modal-content">
+    <form asp-action="RejectSurveyer" asp-controller="Validasi" method="post">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalLabel">Create New Surveyer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <input type="hidden" name="idSurveyer" class="form-control" value="@ViewBag.idSurveyer">
+                <input type="hidden" name="idPerusahaan" class="form-control" value="@ViewBag.idPerusahaan">
+                <input type="hidden" name="id" class="form-control" value="@ViewBag.id">
+            </div>
+            <div class="row">
+                <div class="col mb-6">
+                    <textarea name="alasanReject" class="form-control" placeholder="Alasan Reject...."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-danger">Reject Surveyer</button>
+        </div>
+    </form>
+</div>

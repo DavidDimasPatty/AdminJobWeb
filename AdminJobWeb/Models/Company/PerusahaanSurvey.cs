@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using System.ComponentModel.DataAnnotations;
+using AdminJobWeb.Models.Account;
 
 namespace AdminJobWeb.Models.Company
 {
@@ -9,8 +10,10 @@ namespace AdminJobWeb.Models.Company
         [BsonId]
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public ObjectId _id { get; set; }
-        public ObjectId _idPerusahaan { get; set; }
-        public ObjectId _idSurveyer { get; set; }
+        [BsonElement("idPerusahaan")]
+        public ObjectId idPerusahaan { get; set; }
+        [BsonElement("idSurveyer")]
+        public ObjectId idSurveyer { get; set; }
 
         [BsonDateTimeOptions(Kind = DateTimeKind.Unspecified)]
         public DateTime? dateSurvey { get; set; }
@@ -24,5 +27,10 @@ namespace AdminJobWeb.Models.Company
         public DateTime addTime { get; set; }
         [BsonDateTimeOptions(Kind = DateTimeKind.Unspecified)]
         public DateTime? updTime { get; set; }
+
+        public List<Company>? company { get; set; }
+        public List<surveyers>? surveyer { get; set; }
+
+        public string? alasanReject { get; set; }
     }
 }

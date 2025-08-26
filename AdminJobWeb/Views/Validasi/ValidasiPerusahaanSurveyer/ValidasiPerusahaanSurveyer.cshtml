@@ -1,0 +1,193 @@
+﻿@model List<AdminJobWeb.Models.Company.PerusahaanSurvey>
+@{
+    ViewData["Title"] = "Admin Dashboard - Validasi Perusahaan Surveyer";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="card-title">Validasi Perusahaan Surveyer</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nama Perusahaan</th>
+                        <th>Nama Surveyer</th>
+                        <th>Waktu Survey</th>
+                        <th>Waktu Validasi</th>
+                        <th>Status Survey</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @{
+                        var i = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@item.company[0].nama</td>
+                                @if (item.surveyer.Count == 0)
+                                {
+                                    <td class="text-danger">Belum Memilih Surveyer</td>
+                                }
+                                else
+                                {
+                                    <td>@item.surveyer[0].nama</td>
+                                }
+                                <td>@item.dateSurvey</td>
+                                <td>@item.statusDate</td>
+                                <td>@item.statusSurvey</td>
+                                @if (item.statusSurvey == "Pending")
+                                {
+                                    if (ViewBag.loginAs == "Admin")
+                                    {
+                                        <td>
+                                            <button id="addSurveyer" class="btn btn-primary btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                                <i class="bx bx-plus me-1"></i> Add Surveyer
+                                            </button>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>
+                                            <b class="text-warning">Proses Pemilihan Surveyer</b>
+                                        </td>
+                                    }
+                                }
+                                else if (item.statusSurvey == "Process")
+                                {
+
+                                    if (ViewBag.loginAs == "Survey")
+                                    {
+                                        <td>
+                                            <form asp-action="ApprovalSurveyer" asp-controller="Validasi" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@item._id" />
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="bx bx-check me-1"></i> Approve
+                                                </button>
+                                            </form>
+                                            <button id="rejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                                <i class="bx bx-min me-1"></i> Reject Surveyer
+                                            </button>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>
+                                            <b class="text-warning">Proses Survey</b>
+                                        </td>
+                                    }
+                                }
+                                else if (item.statusSurvey == "Reject")
+                                {
+                                    <td>
+                                        <button id="reasonRejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                            <i class="bx bx-min me-1"></i> Gagal Validasi
+                                        </button>
+                                    </td>
+                                }
+                                else if (item.statusSurvey == "Accept")
+                                {
+                                    <td>
+                                        <b class="text-success">Tervalidasi</b>
+                                    </td>
+                                }
+                            </tr>
+                            i++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    </div>
+</div>
+
+
+@section PageScripts {
+    <script>
+        $(document).ready(function () {
+            $("#addSurveyer").on("click", function (e) {
+                e.preventDefault();
+
+                var url = "/Validasi/AddSurveyer";
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    cache: false,
+                    data: {
+                        id: $(this).attr("data-id"),
+                        idPerusahaan: $(this).attr("data-idPerusahaan"),
+                        namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                    },
+                    success: function (data) {
+                        $("#exampleModal .modal-dialog").html(data);
+                        $("#exampleModal").modal('show');
+                    },
+                    error: function (xhr, status, err) {
+                        console.error("AJAX error:", status, err);
+                        alert("Gagal memuat form. Cek console untuk detail.");
+                    }
+                });
+            });
+
+                 $("#rejectSurveyer").on("click", function (e) {
+                        e.preventDefault();
+
+                        var url = "/Validasi/RejectSurveyer";
+                        $.ajax({
+                            url: url,
+                            type: "GET",
+                            cache: false,
+                            data:{
+                                id: $(this).attr("data-id"),
+                                idPerusahaan : $(this).attr("data-idPerusahaan"),
+                                namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                            },
+                            success: function (data) {
+                                $("#exampleModal .modal-dialog").html(data);
+                                $("#exampleModal").modal('show');
+                            },
+                            error: function (xhr, status, err) {
+                                console.error("AJAX error:", status, err);
+                                alert("Gagal memuat form. Cek console untuk detail.");
+                            }
+                        });
+                    });
+
+
+                             $("#reasonRejectSurveyer").on("click", function (e) {
+                                e.preventDefault();
+
+                                var url = "/Validasi/DetailRejectSurveyer";
+                                $.ajax({
+                                    url: url,
+                                    type: "GET",
+                                    cache: false,
+                                    data:{
+                                        id: $(this).attr("data-id"),
+                                        idPerusahaan : $(this).attr("data-idPerusahaan"),
+                                        namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                                    },
+                                    success: function (data) {
+                                        $("#exampleModal .modal-dialog").html(data);
+                                        $("#exampleModal").modal('show');
+                                    },
+                                    error: function (xhr, status, err) {
+                                        console.error("AJAX error:", status, err);
+                                        alert("Gagal memuat form. Cek console untuk detail.");
+                                    }
+                                });
+                            });
+                });
+    </script>
+}

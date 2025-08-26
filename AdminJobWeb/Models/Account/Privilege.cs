@@ -10,5 +10,6 @@ namespace AdminJobWeb.Models.Account
         public int roleId { get; set; }
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public string menuId { get; set; }
+        public string loginAs { get; set; }
     }
 }

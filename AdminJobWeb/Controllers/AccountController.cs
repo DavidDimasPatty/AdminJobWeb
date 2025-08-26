@@ -281,6 +281,18 @@ namespace AdminJobWeb.Controllers
                         tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
                         HttpContext.Session.SetInt32("passExpired", (int)daysExp!);
                     }
+
+                    var privileges = await _privilegeCollection
+                      .Find(p => p.loginAs == "Survey")
+                      .ToListAsync();
+                    var menuIds = privileges.Select(p => p.menuId).ToList();
+                    var menuItems = await _menuCollection
+                        .Find(m => menuIds.Contains(m._id))
+                        .ToListAsync();
+
+                    TempData["menuItems"] = System.Text.Json.JsonSerializer.Serialize(menuItems);
+                    tracelog.WriteLog($"User : {username}, Success Get Menu Items");
+
                     tracelog.WriteLog($"User : {username}, Success Login");
                     return RedirectToAction("Index", "Home");
                 }
