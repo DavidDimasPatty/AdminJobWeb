@@ -174,14 +174,13 @@ namespace AdminJobWeb.Controllers
                     HttpContext.Session.SetString("username", admin.username);
                     HttpContext.Session.SetString("email", admin.email);
                     HttpContext.Session.SetInt32("role", admin.roleAdmin);
+                    HttpContext.Session.SetString("idUser", admin._id);
                     if (admin.passwordExpired.AddDays(-7) < DateTime.UtcNow)
                     {
                         int daysExp = admin.passwordExpired.Day - DateTime.UtcNow.Day;
                         tracelog.WriteLog($"User : {username}, Success Login but the password near expired date, remaining days : {daysExp}");
                         HttpContext.Session.SetInt32("passExpired", daysExp);
                     }
-                    HttpContext.Session.SetInt32("role", admin.roleAdmin);
-
                     // Get all privileges for based on role
                     tracelog.WriteLog($"User : {username}, Start Get Menu Items");
 
@@ -275,6 +274,7 @@ namespace AdminJobWeb.Controllers
                     HttpContext.Session.SetString("loginAs", "Survey");
                     HttpContext.Session.SetString("username", surveyer.username);
                     HttpContext.Session.SetString("email", surveyer.email);
+                    HttpContext.Session.SetString("idUser", surveyer._id);
                     if (surveyer.passwordExpired?.AddDays(-7) < DateTime.UtcNow)
                     {
                         int? daysExp = surveyer.passwordExpired?.Day - DateTime.UtcNow.Day;

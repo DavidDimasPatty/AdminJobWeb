@@ -44,17 +44,38 @@
                                 {
                                     if (ViewBag.loginAs == "Admin")
                                     {
+                                         if(item.idSurveyer!=null){
+                                            <td>
+                                                <b class="text-warning">Pending Proses Surveyer</b>
+                                            </td>
+                                        }
+                                        else{                                     
                                         <td>
                                             <button id="addSurveyer" class="btn btn-primary btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
                                                 <i class="bx bx-plus me-1"></i> Add Surveyer
                                             </button>
                                         </td>
+                                        }
                                     }
                                     else
                                     {
-                                        <td>
-                                            <b class="text-warning">Proses Pemilihan Surveyer</b>
-                                        </td>
+                                        if(item.idSurveyer==null){
+                                            <td>
+                                                <b class="text-warning">Proses Pemilihan Surveyer</b>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td>
+                                                  <form asp-action="ProcessSurveyer" asp-controller="Validasi" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@item._id" />
+                                                     <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
+                                                    <button type="submit" class="btn btn-info btn-sm">
+                                                        <i class="bx bx-check me-1"></i> Process
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        }
                                     }
                                 }
                                 else if (item.statusSurvey == "Process")

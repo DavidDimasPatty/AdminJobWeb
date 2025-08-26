@@ -3,6 +3,7 @@ using AdminJobWeb.Models.Account;
 using AdminJobWeb.Models.Applicant;
 using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
@@ -17,11 +18,13 @@ namespace AdminJobWeb.Controllers
         private readonly IMongoCollection<surveyers> _surveyerCollection;
         private readonly IMongoCollection<Company> _companyCollection;
         private readonly IMongoCollection<PerusahaanSurvey> _perusahaanSurveyCollection;
+        private readonly IMongoCollection<PerusahaanAdmin> _perusahaanAdminCollection;
         private readonly IMongoDatabase _database;
         private string databaseName;
         private string surveyerCollectionName;
         private string companyCollectionName;
         private string perusahaanSurveyCollectionName;
+        private string perusahaanAdminCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
@@ -39,6 +42,8 @@ namespace AdminJobWeb.Controllers
             this._companyCollection = _database.GetCollection<Company>(this.companyCollectionName);
             this.perusahaanSurveyCollectionName = configuration["MonggoDbSettings:Collections:perusahaanSurveyCollection"]!;
             this._perusahaanSurveyCollection = _database.GetCollection<PerusahaanSurvey>(this.perusahaanSurveyCollectionName);
+            this.perusahaanAdminCollectionName = configuration["MonggoDbSettings:Collections:perusahaanAdminCollection"]!;
+            this._perusahaanAdminCollection = _database.GetCollection<PerusahaanAdmin>(this.perusahaanAdminCollectionName);
             this.appPass = configuration.GetValue<string>("Email:appPass")!;
             this.emailClient = configuration.GetValue<string>("Email:emailClient")!;
             this.linkSelf = configuration.GetValue<string>("Link:linkSelf")!;
@@ -52,11 +57,27 @@ namespace AdminJobWeb.Controllers
             try
             {
                 _tracelogValidasi.WriteLog("UserController Index view called");
-                var docs = await _perusahaanSurveyCollection.Aggregate()
-                 .Lookup("companies", "idPerusahaan", "_id", "company")
-                 .Lookup("Surveyers", "idSurveyer", "_id", "surveyer")    
-                 .As<PerusahaanSurvey>()
-                 .ToListAsync();
+                string loginAs = HttpContext.Session.GetString("loginAs")!;
+                List<PerusahaanSurvey>? docs;
+                if (loginAs == "Survey")
+                {
+                    string idSurveyer = HttpContext.Session.GetString("idUser")!;
+                    ObjectId surveyerObjectId = ObjectId.Parse(idSurveyer);
+                    docs = await _perusahaanSurveyCollection.Aggregate()
+                     .Match(Builders<PerusahaanSurvey>.Filter.Eq(x => x.idSurveyer, surveyerObjectId))
+                    .Lookup("companies", "idPerusahaan", "_id", "company")
+                    .Lookup("Surveyers", "idSurveyer", "_id", "surveyer")
+                    .As<PerusahaanSurvey>()
+                    .ToListAsync();
+                }
+                else
+                {
+                    docs = await _perusahaanSurveyCollection.Aggregate()
+                      .Lookup("companies", "idPerusahaan", "_id", "company")
+                      .Lookup("Surveyers", "idSurveyer", "_id", "surveyer")
+                      .As<PerusahaanSurvey>()
+                      .ToListAsync();
+                }
 
                 ViewBag.loginAs = HttpContext.Session.GetString("loginAs");
                 return View("ValidasiPerusahaanSurveyer/ValidasiPerusahaanSurveyer", docs);
@@ -78,7 +99,7 @@ namespace AdminJobWeb.Controllers
                 ViewBag.idPerusahaan = idPerusahaan;
                 ViewBag.namaPerusahaan = namaPerusahaan;
                 List<surveyers> surveyer = await _surveyerCollection.Find(_ => true).ToListAsync();
-                return View("ValidasiPerusahaanSurveyer/_Partials/_ModalCreate",surveyer);
+                return View("ValidasiPerusahaanSurveyer/_Partials/_ModalCreate", surveyer);
             }
             catch (Exception ex)
             {
@@ -94,9 +115,27 @@ namespace AdminJobWeb.Controllers
             try
             {
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
-                var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Process").Set(p => p.dateSurvey, DateTime.UtcNow).Set(p => p.updTime, DateTime.UtcNow);
+                var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Pending").Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
                 return Content($"<script>alert('Berhasil Add Surveyer');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> ProcessSurveyer(ObjectId id, ObjectId idSurveyer)
+        {
+            try
+            {
+                var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
+                var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Process").Set(p => p.dateSurvey, DateTime.UtcNow).Set(p => p.updTime, DateTime.UtcNow);
+                await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
+                return Content($"<script>alert('Survey Dilakukan!');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
             }
             catch (Exception ex)
             {
@@ -114,6 +153,19 @@ namespace AdminJobWeb.Controllers
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.statusSurvey, "Accept").Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
+
+                var perusahaanAdmin = new PerusahaanAdmin
+                {
+                    _id = ObjectId.GenerateNewId(),
+                    idAdmin=null,
+                    idPerusahaanSurvey=id,
+                    status="Pending",
+                    statusDate= null,
+                    addTime= DateTime.UtcNow,
+                    updTime= DateTime.UtcNow
+                };
+
+                await _perusahaanAdminCollection.InsertOneAsync(perusahaanAdmin);
                 return Content($"<script>alert('Berhasil Accept Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
             }
             catch (Exception ex)
@@ -124,7 +176,7 @@ namespace AdminJobWeb.Controllers
             }
         }
 
-       
+
         [HttpGet]
         public async Task<ActionResult> RejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
         {
@@ -149,7 +201,7 @@ namespace AdminJobWeb.Controllers
             try
             {
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
-                var update = Builders<PerusahaanSurvey>.Update.Set(p => p.statusSurvey, "Reject").Set(p => p.updTime, DateTime.UtcNow).Set(p=>p.alasanReject,alasanReject);
+                var update = Builders<PerusahaanSurvey>.Update.Set(p => p.statusSurvey, "Reject").Set(p => p.updTime, DateTime.UtcNow).Set(p => p.alasanReject, alasanReject);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
                 return Content($"<script>alert('Berhasil Reject Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
             }

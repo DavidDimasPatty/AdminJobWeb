@@ -11,9 +11,9 @@ namespace AdminJobWeb.Models.Company
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public ObjectId _id { get; set; }
         [BsonElement("idPerusahaan")]
-        public ObjectId idPerusahaan { get; set; }
+        public ObjectId? idPerusahaan { get; set; }
         [BsonElement("idSurveyer")]
-        public ObjectId idSurveyer { get; set; }
+        public ObjectId? idSurveyer { get; set; }
 
         [BsonDateTimeOptions(Kind = DateTimeKind.Unspecified)]
         public DateTime? dateSurvey { get; set; }
