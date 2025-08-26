@@ -12,7 +12,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive text-nowrap">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tableList">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -97,4 +97,10 @@
 
 @section PageScripts {
     <script src="~/js/modal-user.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function () {
+            $('#tableList').DataTable();
+        });
+    </script>
 }
+

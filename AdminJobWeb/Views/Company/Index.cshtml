@@ -10,7 +10,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive text-nowrap">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tableList">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -73,3 +73,10 @@
 </div>
 
 
+@section PageScripts {
+    <script>
+        $(document).ready(function() {
+          $('#tableList').DataTable();
+        });
+    </script>
+}
