@@ -86,11 +86,13 @@
                                         <td>
                                             <form asp-action="ApprovalSurveyer" asp-controller="Validasi" method="post" class="d-inline">
                                                 <input type="hidden" name="id" value="@item._id" />
+                                                 <input type="hidden" name="idPerusahaan" value="@item.idPerusahaan" />
+                                                 <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bx bx-check me-1"></i> Approve
                                                 </button>
                                             </form>
-                                            <button id="rejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                            <button id="rejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama" data-idSurveyer="@item.idSurveyer">
                                                 <i class="bx bx-min me-1"></i> Reject Surveyer
                                             </button>
                                         </td>
@@ -105,7 +107,7 @@
                                 else if (item.statusSurvey == "Reject")
                                 {
                                     <td>
-                                        <button id="reasonRejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                        <button id="reasonRejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama" >
                                             <i class="bx bx-min me-1"></i> Gagal Validasi
                                         </button>
                                     </td>
@@ -173,6 +175,7 @@
                                 id: $(this).attr("data-id"),
                                 idPerusahaan : $(this).attr("data-idPerusahaan"),
                                 namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                                idSurveyer: $(this).attr("data-idSurveyer")
                             },
                             success: function (data) {
                                 $("#exampleModal .modal-dialog").html(data);

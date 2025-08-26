@@ -274,7 +274,7 @@ namespace AdminJobWeb.Controllers
                     HttpContext.Session.SetString("loginAs", "Survey");
                     HttpContext.Session.SetString("username", surveyer.username);
                     HttpContext.Session.SetString("email", surveyer.email);
-                    HttpContext.Session.SetString("idUser", surveyer._id);
+                    HttpContext.Session.SetString("idUser", surveyer._id.ToString());
                     if (surveyer.passwordExpired?.AddDays(-7) < DateTime.UtcNow)
                     {
                         int? daysExp = surveyer.passwordExpired?.Day - DateTime.UtcNow.Day;

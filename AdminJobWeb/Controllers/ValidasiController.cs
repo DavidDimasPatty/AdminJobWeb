@@ -9,7 +9,10 @@ using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Diagnostics;
+using System.Net.Mail;
+using System.Net;
 using System.Security.Cryptography;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AdminJobWeb.Controllers
 {
@@ -19,12 +22,14 @@ namespace AdminJobWeb.Controllers
         private readonly IMongoCollection<Company> _companyCollection;
         private readonly IMongoCollection<PerusahaanSurvey> _perusahaanSurveyCollection;
         private readonly IMongoCollection<PerusahaanAdmin> _perusahaanAdminCollection;
+        private readonly IMongoCollection<admin> _adminCollection;
         private readonly IMongoDatabase _database;
         private string databaseName;
         private string surveyerCollectionName;
         private string companyCollectionName;
         private string perusahaanSurveyCollectionName;
         private string perusahaanAdminCollectionName;
+        private string adminCollectionName;
         private string appPass;
         private string emailClient;
         private string linkSelf;
@@ -44,6 +49,8 @@ namespace AdminJobWeb.Controllers
             this._perusahaanSurveyCollection = _database.GetCollection<PerusahaanSurvey>(this.perusahaanSurveyCollectionName);
             this.perusahaanAdminCollectionName = configuration["MonggoDbSettings:Collections:perusahaanAdminCollection"]!;
             this._perusahaanAdminCollection = _database.GetCollection<PerusahaanAdmin>(this.perusahaanAdminCollectionName);
+            this.adminCollectionName = configuration.GetValue<string>("MonggoDbSettings:Collections:adminCollection")!;
+            this._adminCollection = _database.GetCollection<admin>(adminCollectionName);
             this.appPass = configuration.GetValue<string>("Email:appPass")!;
             this.emailClient = configuration.GetValue<string>("Email:emailClient")!;
             this.linkSelf = configuration.GetValue<string>("Link:linkSelf")!;
@@ -114,6 +121,70 @@ namespace AdminJobWeb.Controllers
         {
             try
             {
+                surveyers dataSurveyer = await _surveyerCollection
+                .Find(p => p._id == idSurveyer)
+               .FirstOrDefaultAsync();
+
+                Company dataCompany = await _companyCollection
+                  .Find(p => p._id == idPerusahaan)
+                 .FirstOrDefaultAsync();
+
+                string subject = $"Perusahaan {dataCompany.nama} Butuh Survey";
+                string body = @$"<html>
+                    <header>
+                        <h3>Halo {dataSurveyer.nama}, perusahaan {dataCompany.nama} baru saja mendaftar dan butuh survey</h3>
+                    </header>
+                    <body>
+                        <div>
+                           Berikut merupakan data-data perusahaan:
+                        <div>
+                        <br/>
+                        <br/>
+                        <div>
+                            <ul>
+                                <li>Nama Perusahaan : {dataCompany.nama}</li>
+                                <li>Alamat Perusahaan : {dataCompany.alamat}</li>
+                                <li>Domain Perusahaan : {dataCompany.domain}</li>
+                                <li>No Telp Perusahaan : {dataCompany.noTelp}</li>
+                                <li>ID Survey : {id}</li>
+                            </ul>
+                        </div>
+                        <br/>
+                         <div>
+                            <b> Segera Melakukan Survey dan Ubah Status Pada </b> : <a href='{linkSelf}'>{linkSelf}</a>
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
+
+                    </html>";
+                var smtp = new SmtpClient
+                {
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(emailClient, appPass)
+                };
+
+                using (var message = new MailMessage(emailClient, dataSurveyer.email)
+                {
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                })
+                {
+                    smtp.Send(message);
+                }
+
+
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Pending").Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
@@ -146,10 +217,84 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> ApprovalSurveyer(ObjectId id)
+        public async Task<ActionResult> ApprovalSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
         {
             try
             {
+                List<admin> data = await _adminCollection
+                      .Find(Builders<admin>.Filter.And(
+                          Builders<admin>.Filter.Eq(p => p.roleAdmin, 2),
+                          Builders<admin>.Filter.Eq(p => p.statusAccount, "Active")))
+                     .ToListAsync();
+
+                Company dataCompany = await _companyCollection
+                  .Find(p => p._id == idPerusahaan)
+                 .FirstOrDefaultAsync();
+
+
+                surveyers dataSurveyer = await _surveyerCollection
+                  .Find(p => p._id == idSurveyer)
+                 .FirstOrDefaultAsync();
+
+                foreach (var item in data)
+                {
+                    string subject = $"Perusahaan {dataCompany.nama} Butuh Validasi";
+                    string body = @$"<html>
+                    <header>
+                        <h3>Perusahaan {dataCompany.nama} Telah di Survey</h3>
+                    </header>
+                    <body>
+                        <div>
+                           Berikut merupakan data survey :
+                        <div>
+                        <br/>
+                        <br/>
+                        <div>
+                            <ul>
+                                <li>Nama Perusahaan : {dataCompany.nama}</li>
+                                <li>Alamat Perusahaan : {dataCompany.alamat}</li>
+                                <li>Domain Perusahaan : {dataCompany.domain}</li>
+                                <li>No Telp Perusahaan : {dataCompany.noTelp}</li>
+                                <li>Nama Surveyer : {dataSurveyer.nama}</li>
+                                <li>ID Survey : {id}</li>
+                            </ul>
+                        </div>
+                        <br/>
+                         <div>
+                            <b> Segera Melakukan Validasi Pada </b> : <a href='{linkSelf}'>{linkSelf}</a>
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
+
+                    </html>";
+                    var smtp = new SmtpClient
+                    {
+                        Host = "smtp.gmail.com",
+                        Port = 587,
+                        EnableSsl = true,
+                        DeliveryMethod = SmtpDeliveryMethod.Network,
+                        UseDefaultCredentials = false,
+                        Credentials = new NetworkCredential(emailClient, appPass)
+                    };
+
+                    using (var message = new MailMessage(emailClient, item.email)
+                    {
+                        Subject = subject,
+                        Body = body,
+                        IsBodyHtml = true
+                    })
+                    {
+                        smtp.Send(message);
+                    }
+                }
+
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.statusSurvey, "Accept").Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
@@ -157,12 +302,12 @@ namespace AdminJobWeb.Controllers
                 var perusahaanAdmin = new PerusahaanAdmin
                 {
                     _id = ObjectId.GenerateNewId(),
-                    idAdmin=null,
-                    idPerusahaanSurvey=id,
-                    status="Pending",
-                    statusDate= null,
-                    addTime= DateTime.UtcNow,
-                    updTime= DateTime.UtcNow
+                    idAdmin = null,
+                    idPerusahaanSurvey = id,
+                    status = "Pending",
+                    statusDate = null,
+                    addTime = DateTime.UtcNow,
+                    updTime = DateTime.UtcNow
                 };
 
                 await _perusahaanAdminCollection.InsertOneAsync(perusahaanAdmin);
@@ -203,6 +348,78 @@ namespace AdminJobWeb.Controllers
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.statusSurvey, "Reject").Set(p => p.updTime, DateTime.UtcNow).Set(p => p.alasanReject, alasanReject);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
+
+                Company dataCompany = await _companyCollection
+                  .Find(p => p._id == idPerusahaan)
+                 .FirstOrDefaultAsync();
+
+
+                surveyers dataSurveyer = await _surveyerCollection
+                  .Find(p => p._id == idSurveyer)
+                 .FirstOrDefaultAsync();
+
+                string subject = $"Perusahaan {dataCompany.nama} Gagal Validasi";
+                string body = @$"<html>
+                    <header>
+                        <h3>Perusahaan {dataCompany.nama} Gagal Validasi</h3>
+                    </header>
+                    <body>
+                        <div>
+                           Dengan berat hati kami sampaikan bahwa perusahaan dengan data sebagai berikut:                            
+                        <div>
+                        <br/>
+                        <br/>
+                        <div>
+                            <ul>
+                                <li>Nama Perusahaan : {dataCompany.nama}</li>
+                                <li>Alamat Perusahaan : {dataCompany.alamat}</li>
+                                <li>Domain Perusahaan : {dataCompany.domain}</li>
+                                <li>No Telp Perusahaan : {dataCompany.noTelp}</li>
+                                <li>Nama Surveyer : {dataSurveyer.nama}</li>
+                                <li>ID Survey : {id}</li>
+                            </ul>
+                        </div>
+                        <br/>
+                         <div>
+                           Gagal divalidasi oleh pihak kami, dikarenakan : 
+                        </div>
+                        <div>
+                            {alasanReject}
+                        </div>
+                        <div>
+                            Mohon Coba Perbaiki Perysaratan.
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
+
+                    </html>";
+                var smtp = new SmtpClient
+                {
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(emailClient, appPass)
+                };
+
+                using (var message = new MailMessage(emailClient, dataCompany.email!)
+                {
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                })
+                {
+                    smtp.Send(message);
+                }
+
                 return Content($"<script>alert('Berhasil Reject Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
             }
             catch (Exception ex)

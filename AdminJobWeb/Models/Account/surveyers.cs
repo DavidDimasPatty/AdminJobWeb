@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace AdminJobWeb.Models.Account
 {
@@ -6,7 +7,7 @@ namespace AdminJobWeb.Models.Account
     {
         [BsonId]
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
-        public string _id { get; set; }
+        public ObjectId _id { get; set; }
         public string? nama { get; set; }
         public string username { get; set; }
         public byte[]? password { get; set; }

@@ -1,0 +1,71 @@
+﻿@model List<AdminJobWeb.Models.Applicant.Applicant>
+@{
+    ViewData["Title"] = "Admin Dashboard - User Management";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="card-title">User List</h5>
+
+    </div>
+    <div class="card-body">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>No Telp</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @{
+                        var i = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@item.nama</td>
+                                <td>@item.email</td>
+                                <td>@item.noTelp</td>
+                                <td>@item.statusAccount</td>
+                                <td>
+                                    @if (item.statusAccount=="Active")
+                                    {
+                                        <form asp-action="BlockApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-warning btn-sm">
+                                                <i class="bx bx-check me-1"></i> Block
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ActivateApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bx bx-check me-1"></i> Activate
+                                            </button>
+                                        </form>
+                                    }
+                                    <form asp-action="DeleteApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item._id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bx bx-check me-1"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            i++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+

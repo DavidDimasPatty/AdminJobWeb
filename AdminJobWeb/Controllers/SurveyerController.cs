@@ -198,7 +198,7 @@ namespace AdminJobWeb.Controllers
 
                 var surveyerInsert = new surveyers
                 {
-                    _id = ObjectId.GenerateNewId().ToString(),
+                    _id = ObjectId.GenerateNewId(),
                     username = data.username,
                     email = data.email,
                     addTime = DateTime.UtcNow,
@@ -314,7 +314,7 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ApprovalNewSurveyer(string id)
+        public async Task<ActionResult> ApprovalNewSurveyer(ObjectId id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
@@ -350,7 +350,7 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> RejectNewSurveyer(string id)
+        public async Task<ActionResult> RejectNewSurveyer(ObjectId id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
@@ -385,7 +385,7 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> BlockSurveyer(string id)
+        public async Task<ActionResult> BlockSurveyer(ObjectId id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             try
@@ -415,7 +415,7 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateSurveyer(string id)
+        public async Task<ActionResult> ActivateSurveyer(ObjectId id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             try
@@ -446,7 +446,7 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteSurveyer(string id)
+        public async Task<ActionResult> DeleteSurveyer(ObjectId id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             try
