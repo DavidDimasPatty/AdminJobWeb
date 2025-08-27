@@ -60,23 +60,6 @@ namespace AdminJobWeb.Controllers
             _func = new GeneralFunction1();
         }
 
-        private static string GenerateRandomKey()
-        {
-            int size = 16;
-            var randomNumber = new byte[size];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-            }
-
-            string token = Convert.ToBase64String(randomNumber)
-                             .Replace("+", "-")
-                             .Replace("/", "_")
-                             .Replace("=", "");
-
-            return token;
-        }
-
         public IActionResult Index()
         {
             if (HttpContext.Session.GetInt32("role") != 1)
@@ -115,7 +98,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> SendFormAdmin()
+        public IActionResult SendFormAdmin()
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
