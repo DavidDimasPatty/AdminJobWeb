@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using System.ComponentModel.DataAnnotations;
+using AdminJobWeb.Models.Account;
 
 namespace AdminJobWeb.Models.Company
 {
@@ -23,5 +24,17 @@ namespace AdminJobWeb.Models.Company
         public DateTime addTime { get; set; }
         [BsonDateTimeOptions(Kind = DateTimeKind.Unspecified)]
         public DateTime? updTime { get; set; }
+        public string? alasanReject { get; set; }
+        // Attribute to ignore unknown fields during deserialization
+        [BsonExtraElements]
+        public BsonDocument ExtraElements { get; set; }
+    }
+
+    public class PerusahaanAdminViewModel
+    {
+        public PerusahaanAdmin perusahaanAdmin { get; set; }
+        public PerusahaanSurvey perusahaanSurvey { get; set; }
+        public Company company { get; set; }
+        public surveyers surveyer { get; set; }
     }
 }

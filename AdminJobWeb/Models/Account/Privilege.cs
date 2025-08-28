@@ -8,8 +8,7 @@ namespace AdminJobWeb.Models.Account
         [BsonId]
         public ObjectId _id { get; set; }
         public int roleId { get; set; }
-        [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
-        public string menuId { get; set; }
+        public ObjectId menuId { get; set; }
         public string loginAs { get; set; }
     }
 }

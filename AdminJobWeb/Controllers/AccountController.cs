@@ -185,7 +185,7 @@ namespace AdminJobWeb.Controllers
                     tracelog.WriteLog($"User : {username}, Start Get Menu Items");
 
                     var privileges = await _privilegeCollection
-                        .Find(p => p.roleId == admin.roleAdmin)
+                        .Find(p => p.roleId == admin.roleAdmin && p.loginAs == "Admin")
                         .ToListAsync();
                     var menuIds = privileges.Select(p => p.menuId).ToList();
                     var menuItems = await _menuCollection

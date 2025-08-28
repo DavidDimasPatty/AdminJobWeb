@@ -58,6 +58,7 @@ namespace AdminJobWeb.Controllers
             this.generalFunction1 = new GeneralFunction1();
         }
 
+        // Validasi Perusahaan Surveyer
         [HttpGet]
         public async Task<ActionResult> ValidasiPerusahaanSurveyer()
         {
@@ -454,6 +455,293 @@ namespace AdminJobWeb.Controllers
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+            }
+        }
+
+        // Validasi Perusahaan Admin
+        [HttpGet]
+        public async Task<ActionResult> ValidasiPerusahaanAdmin()
+        {
+            string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (loginAs != "Admin")
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogValidasi.WriteLog("ValidasiController ValidasiPerusahaanAdmin view called");
+
+                List<PerusahaanAdminViewModel>? docs;
+                docs = await _perusahaanAdminCollection.Aggregate()
+                    .Lookup("PerusahaanSurvey", "idPerusahaanSurvey", "_id", "perusahaanSurvey")
+                    .Unwind<PerusahaanAdmin>("perusahaanSurvey")
+                    .Lookup("companies", "perusahaanSurvey.idPerusahaan", "_id", "company")
+                    .Unwind<PerusahaanAdmin>("company")
+                    .Lookup("Surveyers", "perusahaanSurvey.idSurveyer", "_id", "surveyer")
+                    .Unwind<PerusahaanAdmin>("surveyer")
+                    .Project<PerusahaanAdminViewModel>(new BsonDocument
+                    {
+                        { "perusahaanAdmin", "$$ROOT" },
+                        { "perusahaanSurvey", "$perusahaanSurvey" },
+                        { "company", "$company" },
+                        { "surveyer", "$surveyer" },
+                        { "_id", 0 }
+                    })
+                    .ToListAsync();
+
+                // Filter hanya yang sudah di Approve oleh Surveyer
+                docs = docs.Where(x => x.perusahaanSurvey.statusSurvey == "Accept").ToList();
+
+                ViewBag.loginAs = HttpContext.Session.GetString("loginAs");
+                return View("ValidasiPerusahaanAdmin/ValidasiPerusahaanAdmin", docs);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in ValidasiController ValidasiPerusahaanAdmin: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> ApprovalAdmin(ObjectId id, ObjectId idPerusahaan)
+        {
+            string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (loginAs != "Admin")
+            {
+                _tracelogValidasi.WriteLog("Unauthorized access attempt to ApprovalAdmin");
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogValidasi.WriteLog("ValidasiController ApprovalAdmin called");
+
+                string idAdmin = HttpContext.Session.GetString("idUser")!;
+                ObjectId adminObjectId = ObjectId.Parse(idAdmin);
+
+                var filter = Builders<PerusahaanAdmin>.Filter.Eq(p => p._id, id);
+                var update = Builders<PerusahaanAdmin>.Update.Set(p => p.idAdmin, adminObjectId).Set(p => p.status, "Accept").Set(p => p.statusDate, DateTime.UtcNow).Set(p => p.updTime, DateTime.UtcNow);
+                await _perusahaanAdminCollection.UpdateOneAsync(filter, update);
+
+                // Send Email to Company
+                Company dataCompany = await _companyCollection
+                  .Find(p => p._id == idPerusahaan)
+                 .FirstOrDefaultAsync();
+
+                string subject = $"Perusahaan {dataCompany.nama} Berhasil Validasi";
+                string body = @$"<html>
+                    <header>
+                        <h3>Perusahaan {dataCompany.nama} Berhasil Validasi</h3>
+                    </header>
+                    <body>
+                        <div>
+                           Dengan senang hati kami sampaikan bahwa perusahaan dengan data sebagai berikut:                            
+                        <div>
+                        <br/>
+                        <br/>
+                        <div>
+                            <ul>
+                                <li>Nama Perusahaan : {dataCompany.nama}</li>
+                                <li>Alamat Perusahaan : {dataCompany.alamat}</li>
+                                <li>Domain Perusahaan : {dataCompany.domain}</li>
+                                <li>No Telp Perusahaan : {dataCompany.noTelp}</li>
+                            </ul>
+                        </div>
+                        <br/>
+                         <div>
+                           Telah berhasil divalidasi oleh pihak kami, dan dapat menggunakan layanan Ikodora.
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
+                    </html>";
+
+                _tracelogValidasi.WriteLog("Preparing to send approval email to company");
+                var smtp = new SmtpClient
+                {
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(emailClient, appPass)
+                };
+                using (var message = new MailMessage(emailClient, dataCompany.email!)
+                {
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                })
+                {
+                    smtp.Send(message);
+                }
+                _tracelogValidasi.WriteLog("Approval email sent successfully");
+
+                _tracelogValidasi.WriteLog("ValidasiController ApprovalAdmin completed successfully");
+                return Content($"<script>alert('Approval Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in ValidasiController ApprovalAdmin: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+            }
+        }
+
+        [HttpGet]
+        public async Task<ActionResult> RejectAdmin(ObjectId id, ObjectId idPerusahaan)
+        {
+            string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (loginAs != "Admin")
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                ViewBag.id = id;
+                ViewBag.idCompany = idPerusahaan;
+
+                return PartialView("ValidasiPerusahaanAdmin/_Partials/_ModalReject");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in ValidasiController RejectAdmin: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> RejectAdmin(PerusahaanAdmin objData, ObjectId idPerusahaan)
+        {
+            string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (loginAs != "Admin")
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+            try
+            {
+                _tracelogValidasi.WriteLog("ValidasiController RejectAdmin called");
+
+                string idAdmin = HttpContext.Session.GetString("idUser")!;
+                ObjectId adminObjectId = ObjectId.Parse(idAdmin);
+
+                var filter = Builders<PerusahaanAdmin>.Filter.Eq(p => p._id, objData._id);
+                var update = Builders<PerusahaanAdmin>.Update.Set(p => p.idAdmin, adminObjectId).Set(p => p.status, "Reject").Set(p => p.statusDate, DateTime.UtcNow).Set(p => p.updTime, DateTime.UtcNow).Set(p => p.alasanReject, objData.alasanReject);
+                await _perusahaanAdminCollection.UpdateOneAsync(filter, update);
+
+                // Send Email to Company
+                Company dataCompany = await _companyCollection
+                  .Find(p => p._id == idPerusahaan)
+                 .FirstOrDefaultAsync();
+
+                string subject = $"Perusahaan {dataCompany.nama} Gagal Validasi";
+                string body = @$"<html>
+                    <header>
+                        <h3>Perusahaan {dataCompany.nama} Gagal Validasi</h3>
+                    </header>
+                    <body>
+                        <div>
+                           Dengan berat hati kami sampaikan bahwa perusahaan dengan data sebagai berikut:                            
+                        <div>
+                        <br/>
+                        <br/>
+                        <div>
+                            <ul>
+                                <li>Nama Perusahaan : {dataCompany.nama}</li>
+                                <li>Alamat Perusahaan : {dataCompany.alamat}</li>
+                                <li>Domain Perusahaan : {dataCompany.domain}</li>
+                                <li>No Telp Perusahaan : {dataCompany.noTelp}</li>
+                            </ul>
+                        </div>
+                        <br/>
+                         <div>
+                           Gagal divalidasi oleh pihak kami, dikarenakan : 
+                        </div>
+                        <div>
+                            {objData.alasanReject}
+                        </div>
+                        <div>
+                            Mohon Coba Perbaiki Perysaratan.
+                        </div>
+                        <br/>
+                        <br/>
+                        <div>
+                            Terima Kasih,
+                        </div>
+                        <div>
+                            IT Dev Ikodora
+                        </div>
+                    </body>
+                    </html>";
+
+                _tracelogValidasi.WriteLog("Preparing to send rejection email to company");
+                var smtp = new SmtpClient
+                {
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(emailClient, appPass)
+                };
+                using (var message = new MailMessage(emailClient, dataCompany.email!)
+                {
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                })
+                {
+                    smtp.Send(message);
+                }
+                _tracelogValidasi.WriteLog("Rejection email sent successfully");
+
+                _tracelogValidasi.WriteLog("ValidasiController RejectAdmin completed successfully");
+                return Content($"<script>alert('Reject Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in ValidasiController RejectAdmin: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+            }
+        }
+
+        [HttpGet]
+        public async Task<ActionResult> DetailRejectAdmin(ObjectId id)
+        {
+            string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (loginAs != "Admin")
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogValidasi.WriteLog("ValidasiController DetailRejectAdmin view called");
+
+                PerusahaanAdmin docs = await _perusahaanAdminCollection
+                    .Find(Builders<PerusahaanAdmin>.Filter.Eq(x => x._id, id))
+                    .FirstOrDefaultAsync();
+
+                return PartialView("ValidasiPerusahaanAdmin/_Partials/_ModalDetailReject", docs);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                _tracelogValidasi.WriteLog("Error in ValidasiController DetailRejectAdmin: " + ex.Message);
+                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
             }
         }
     }

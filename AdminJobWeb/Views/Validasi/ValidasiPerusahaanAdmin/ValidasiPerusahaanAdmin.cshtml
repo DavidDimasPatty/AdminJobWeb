@@ -1,0 +1,109 @@
+﻿@model List<AdminJobWeb.Models.Company.PerusahaanAdminViewModel>
+@{
+    ViewData["Title"] = "Admin Dashboard - Validasi Perusahaan oleh Admin";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="card-title">Validasi Perusahaan oleh Admin</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover" id="tableList">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nama Perusahaan</th>
+                        <th>Nama Surveyer</th>
+                        <th>Waktu Survey</th>
+                        <th>Status Survey</th>
+                        <th>Status Admin</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @{
+                        var i = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@item.company.nama</td>
+                                <td>@item.surveyer.nama</td>
+                                <td>@item.perusahaanSurvey.dateSurvey</td>
+                                <td>
+                                    @switch (item.perusahaanSurvey.statusSurvey)
+                                    {
+                                        case "Process":
+                                            <span class="badge bg-label-warning me-1">Process</span>
+                                            break;
+                                        case "Pending":
+                                            <span class="badge bg-label-info me-1">Pending</span>
+                                            break;
+                                        case "Accept":
+                                            <span class="badge bg-label-success me-1">Approve</span>
+                                            break;
+                                        case "Reject":
+                                            <span class="badge bg-label-danger me-1">Reject</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-label-secondary me-1">Unknown</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @switch (item.perusahaanAdmin.status)
+                                    {
+                                        case "Pending":
+                                            <span class="badge bg-label-info me-1">Pending</span>
+                                            break;
+                                        case "Accept":
+                                            <span class="badge bg-label-success me-1">Approve</span>
+                                            break;
+                                        case "Reject":
+                                            <span class="badge bg-label-danger me-1">Reject</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-label-secondary me-1">Unknown</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.perusahaanAdmin.status == "Pending")
+                                    {
+                                        <form asp-action="ApprovalAdmin" asp-controller="Validasi" class="d-inline">
+                                            <input type="hidden" name="id" value="@item.perusahaanAdmin._id" />
+                                            <input type="hidden" name="idPerusahaan" value="@item.company._id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bx bx-check me-1"></i> Approve
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-danger btn-sm" id="rejectTrigger" type="button"
+                                                data-id="@item.perusahaanAdmin._id"
+                                                data-perusahaan="@item.company._id">
+                                            <i class="bx bx-x me-1"></i> Reject
+                                        </button>
+                                    }
+                                    else if (item.perusahaanAdmin.status == "Reject")
+                                    {
+                                        <button class="btn btn-danger btn-sm" id="rejectDetailTrigger" type="button"
+                                                data-id="@item.perusahaanAdmin._id">
+                                            <i class="bx bx-x me-1"></i> Detail Reject
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                            i++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalContainer"></div>
+
+@section PageScripts {
+    <script src="~/js/modal-validasi-admin.js" asp-append-version="true"></script>
+}
