@@ -76,6 +76,15 @@
                                             </button>
                                         </form>
                                     }
+                                    else
+                                    {
+                                        <form asp-action="ActivateAdmin" asp-controller="User" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@item._id" />
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bx bx-check me-1"></i> Activate
+                                            </button>
+                                        </form>
+                                    }
                                     <form asp-action="DeleteAdmin" asp-controller="User" method="post" class="d-inline">
                                         <input type="hidden" name="id" value="@item._id" />
                                         <button type="submit" class="btn btn-danger btn-sm">

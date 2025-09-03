@@ -462,6 +462,42 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        public async Task<ActionResult> ActivateAdmin(string id)
+        {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+            }
+
+            try
+            {
+                _tracelogUser.WriteLog($"User : {adminLogin}, Start Activate Admin");
+
+                var filter = Builders<admin>.Filter.Eq(p => p._id, id);
+                var update = Builders<admin>.Update.Set(p => p.statusAccount, "Active");
+
+                var result = await _adminCollection.UpdateOneAsync(filter, update);
+
+                if (result.ModifiedCount == 0)
+                {
+                    _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Activate Admin, Data tidak ditemukan");
+                    return Content("<script>alert('Gagal Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+                }
+
+                _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Activate Admin");
+                return Content("<script>alert('Berhasil Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                _tracelogUser.WriteLog($"User : {adminLogin}, Failed Activate Admin, Reason : {e.Message}");
+                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+            }
+        }
+
+        [HttpPost]
+        [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> DeleteAdmin(string id)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;

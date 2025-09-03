@@ -529,7 +529,7 @@ namespace AdminJobWeb.Controllers
                 // Send Email to Company
                 Company dataCompany = await _companyCollection
                   .Find(p => p._id == idPerusahaan)
-                 .FirstOrDefaultAsync();
+                  .FirstOrDefaultAsync();
 
                 string subject = $"Perusahaan {dataCompany.nama} Berhasil Validasi";
                 string body = @$"<html>
@@ -585,6 +585,11 @@ namespace AdminJobWeb.Controllers
                     smtp.Send(message);
                 }
                 _tracelogValidasi.WriteLog("Approval email sent successfully");
+
+                // Update company status
+                var filterCompany = Builders<Company>.Filter.Eq(p => p._id, idPerusahaan);
+                var updateCompany = Builders<Company>.Update.Set(p => p.statusAccount, "Active").Set(p => p.updTime, DateTime.UtcNow);
+                await _companyCollection.UpdateOneAsync(filterCompany, updateCompany);
 
                 _tracelogValidasi.WriteLog("ValidasiController ApprovalAdmin completed successfully");
                 return Content($"<script>alert('Approval Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
