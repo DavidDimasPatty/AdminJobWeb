@@ -94,17 +94,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Block Applicant";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Applicant Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Block Applicant";
+                return RedirectToAction("Index");
+                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Block Applicant";
+                TempData["icon"] = "error";
+                TempData["text"] =e.Message;
+                return RedirectToAction("Index");
+                // Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+
             }
         }
 
@@ -124,17 +137,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Activate Applicant";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Applicant Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Applicant";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Activate Applicant";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
+                // Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
             }
         }
 
@@ -152,17 +177,30 @@ namespace AdminJobWeb.Controllers
                 if (result.DeletedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Applicant";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Applicant Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Applicant";
+                return RedirectToAction("Index");
+
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Applicant";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -178,7 +216,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                return View("Experience/Experience",experiences);
+                return View("Experience/Experience", experiences);
             }
             catch (Exception ex)
             {
@@ -236,7 +274,11 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Add Experience";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Experience Sudah Ada";
+                    return RedirectToAction("Experience");
+                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var experienceInsert = new Experience
@@ -246,17 +288,26 @@ namespace AdminJobWeb.Controllers
                     addTime = DateTime.Now,
                     lokasi = data.lokasi,
                     namaPerusahaan = data.namaPerusahaan,
-                    industri=data.industri,
+                    industri = data.industri,
                     status = "Active"
                 };
 
                 await _experienceCollection.InsertOneAsync(experienceInsert);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Add Experience";
+                return RedirectToAction("Experience");
+                //return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Experience";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Experience");
+
+                //  Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -274,19 +325,33 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Experience";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Experience Sudah Ada";
+                    return RedirectToAction("Experience");
+
+                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, data._id);
-                var update = Builders<Experience>.Update.Set(p => p.namaPerusahaan, data.namaPerusahaan).Set(p => p.lokasi, data.lokasi).Set(p=>p.industri,data.industri);
+                var update = Builders<Experience>.Update.Set(p => p.namaPerusahaan, data.namaPerusahaan).Set(p => p.lokasi, data.lokasi).Set(p => p.industri, data.industri);
                 await _experienceCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                //return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Experience";
+                return RedirectToAction("Experience");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Edit Experience";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Experience");
+                //Debug.WriteLine(ex.Message);
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -304,15 +369,22 @@ namespace AdminJobWeb.Controllers
 
                 if (result.DeletedCount == 0)
                 {
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Experience";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Experience");
                 }
-
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Experience";
+                return RedirectToAction("Experience");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Experience";
+                TempData["icon"] = "error";
+                TempData["text"] = "Gagal Delete Experience";
+                return RedirectToAction("Experience");
             }
         }
 
@@ -331,17 +403,22 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Inactive Experience";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Experience");
                 }
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Inactive Experience";
+                return RedirectToAction("Experience");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Inactive Experience";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Experience");
             }
         }
 
@@ -360,18 +437,22 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Activate Experience";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Experience");
                 }
-
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Experience";
+                return RedirectToAction("Experience");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Activate Experience";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Experience");
             }
         }
 
@@ -445,7 +526,11 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Add Education";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Education Sudah Ada";
+                    return RedirectToAction("Education");
                 }
 
                 var educationInsert = new Education
@@ -459,12 +544,20 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _educationCollection.InsertOneAsync(educationInsert);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                // return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Add Education";
+                return RedirectToAction("Education");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Education";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Education");
+                //Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -482,19 +575,31 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Education";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Education Sudah Ada";
+                    return RedirectToAction("Education");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Education>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Education>.Update.Set(p => p.nama, data.nama).Set(p => p.lokasi, data.lokasi);
                 await _educationCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                //return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Education";
+                return RedirectToAction("Education");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Edit Education";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Education");
+                //Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -512,15 +617,26 @@ namespace AdminJobWeb.Controllers
 
                 if (result.DeletedCount == 0)
                 {
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Education";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Education");
                 }
-
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Education";
+                return RedirectToAction("Education");
+                // return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                //  Debug.WriteLine(e.Message);
+                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Education";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Education");
             }
         }
 
@@ -541,17 +657,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
-                }
+                    // return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Inactive Education";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Education");
 
+                }
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Inactive Education";
+                return RedirectToAction("Education");
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Inactive Education";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Education");
+                // Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -569,18 +697,29 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    TempData["titlePopUp"] = "Gagal Activate Education";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Education");
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
                 }
-
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Education";
+                return RedirectToAction("Education");
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Activate Education";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Education");
+                //   Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -597,7 +736,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                return View("Skill/Skill",skills);
+                return View("Skill/Skill", skills);
             }
             catch (Exception ex)
             {
@@ -655,7 +794,11 @@ namespace AdminJobWeb.Controllers
 
                 if (checkSkill > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
+                    //   return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Add Skill";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Skill Sudah Ada";
+                    return RedirectToAction("Skill");
                 }
 
                 var SkillInsert = new Skill
@@ -668,12 +811,20 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _skillCollection.InsertOneAsync(SkillInsert);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                //  return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Add Skill";
+                return RedirectToAction("Skill");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                //Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Skill";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Skill");
             }
         }
 
@@ -683,27 +834,39 @@ namespace AdminJobWeb.Controllers
         {
             try
             {
-                var checkEdu = await _skillCollection
+                var checkSkill = await _skillCollection
                         .Find(Builders<Skill>.Filter.And(
                             Builders<Skill>.Filter.Eq(p => p.nama, data.nama),
                             Builders<Skill>.Filter.Ne(p => p._id, data._id)))
                        .CountDocumentsAsync();
 
-                if (checkEdu > 0)
+                if (checkSkill > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Skill";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Skill Sudah Ada";
+                    return RedirectToAction("Skill");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Skill>.Update.Set(p => p.nama, data.nama);
                 await _skillCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                //  return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Skill";
+                return RedirectToAction("Skill");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                // Debug.WriteLine(ex.Message);
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Edit Skill";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Skill");
             }
         }
 
@@ -717,19 +880,29 @@ namespace AdminJobWeb.Controllers
             {
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, id);
                 var result = await _skillCollection.DeleteOneAsync(filter);
-
-
                 if (result.DeletedCount == 0)
                 {
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Skill";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Skill");
+                    //return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
 
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Skill";
+                return RedirectToAction("Skill");
+                //return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Skill";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Skill");
+                // Debug.WriteLine(e.Message);
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -749,18 +922,30 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    TempData["titlePopUp"] = "Gagal Inactive Skill";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Skill");
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Inactive Skill";
+                return RedirectToAction("Skill");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                // Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Inactive Skill";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Skill");
             }
         }
 
@@ -779,18 +964,29 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    TempData["titlePopUp"] = "Gagal Activate Skill";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Skill");
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
-
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Skill";
+                return RedirectToAction("Skill");
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Activate Skill";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Skill");
+                // Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
             }
         }
 
@@ -806,7 +1002,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                return View("Organization/Organization",organizations);
+                return View("Organization/Organization", organizations);
             }
             catch (Exception ex)
             {
@@ -864,7 +1060,12 @@ namespace AdminJobWeb.Controllers
 
                 if (checkOrganization > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Add Organization";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Organization Sudah Ada";
+                    return RedirectToAction("Organization");
+
+                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
                 }
 
                 var OrganizationInsert = new Organization
@@ -879,12 +1080,20 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _organizationCollection.InsertOneAsync(OrganizationInsert);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                // return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Add Organization";
+                return RedirectToAction("Organization");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                //  Debug.WriteLine(ex.Message);
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Organization";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Organization");
             }
         }
 
@@ -902,19 +1111,33 @@ namespace AdminJobWeb.Controllers
 
                 if (checkOrganization > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Organization";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Organization Sudah Ada";
+                    return RedirectToAction("Organization");
+                    //  return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Organization>.Update.Set(p => p.nama, data.nama).Set(p => p.lokasi, data.lokasi);
                 await _organizationCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                // return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Organization";
+                return RedirectToAction("Organization");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                // Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Edit Organization";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Organization");
+
             }
         }
 
@@ -932,15 +1155,28 @@ namespace AdminJobWeb.Controllers
 
                 if (result.DeletedCount == 0)
                 {
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Organization";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Organization");
+                    //     return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
 
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Organization";
+                return RedirectToAction("Organization");
+                //  return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                //   Debug.WriteLine(e.Message);
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Organization";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Organization");
+
             }
         }
 
@@ -958,18 +1194,32 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    TempData["titlePopUp"] = "Gagal Inactive Organization";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Organization");
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    //  return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
 
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Inactive Organization";
+                return RedirectToAction("Organization");
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Inactive Organization";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Organization");
+                //  Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+
             }
         }
 
@@ -989,17 +1239,31 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+
+                    TempData["titlePopUp"] = "Gagal Activate Organization";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Organization");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Organization";
+                return RedirectToAction("Organization");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                TempData["titlePopUp"] = "Gagal Activate Organization";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Organization");
+                //Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
             }
         }
 
@@ -1015,7 +1279,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                return View("Certificate/Certificate",certificates);
+                return View("Certificate/Certificate", certificates);
             }
             catch (Exception ex)
             {
@@ -1073,7 +1337,11 @@ namespace AdminJobWeb.Controllers
 
                 if (checkCertificate > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Add Certificate";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Certificate Sudah Ada";
+                    return RedirectToAction("Certificate");
+                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
                 }
 
                 var CertificateInsert = new Certificate
@@ -1088,12 +1356,20 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _certificateCollection.InsertOneAsync(CertificateInsert);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                //    return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Add Certificate";
+                return RedirectToAction("Certificate");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                //Debug.WriteLine(ex.Message);
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Certificate";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Certificate");
             }
         }
 
@@ -1112,19 +1388,31 @@ namespace AdminJobWeb.Controllers
 
                 if (checkCertificate > 0)
                 {
-                    return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Certificate";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Certificate Sudah Ada";
+                    return RedirectToAction("Certificate");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Certificate>.Update.Set(p => p.nama, data.nama).Set(p => p.publisher, data.publisher);
                 await _certificateCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                //    return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Certificate";
+                return RedirectToAction("Certificate");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                //  Debug.WriteLine(ex.Message);
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Certificate";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Certificate");
             }
         }
 
@@ -1142,15 +1430,27 @@ namespace AdminJobWeb.Controllers
 
                 if (result.DeletedCount == 0)
                 {
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Certificate";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Certificate Tidak Ditemukan";
+                    return RedirectToAction("Certificate");
+                    // return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
 
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Certificate";
+                return RedirectToAction("Certificate");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                //   Debug.WriteLine(e.Message);
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Certificate";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Certificate");
             }
         }
 
@@ -1170,17 +1470,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Inactive Certificate";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Certificate Tidak Ditemukan";
+                    return RedirectToAction("Certificate");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Inactive Certificate";
+                return RedirectToAction("Certificate");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Inactive Certificate";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Certificate");
             }
         }
 
@@ -1200,17 +1513,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Active Certificate";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Certificate Tidak Ditemukan";
+                    return RedirectToAction("Certificate");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                //   return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Active Certificate";
+                return RedirectToAction("Certificate");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //   Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Active Certificate";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Certificate");
             }
         }
 

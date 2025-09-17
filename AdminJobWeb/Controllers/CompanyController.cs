@@ -65,17 +65,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Company!');window.location.href='/Company/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Block Company!');window.location.href='/Company/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Block Company";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Company Tidak Ditemukan";
+                    return RedirectToAction("Index");
+
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Company!');window.location.href='/Company/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Block Company!');window.location.href='/Company/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Block Company";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //   Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Block Company";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -94,17 +107,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Activate Company!');window.location.href='/Company/Index'</script>", "text/html");
+                    //   return Content("<script>alert('Gagal Activate Company!');window.location.href='/Company/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Activate Company";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Activate Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Activate Company!');window.location.href='/Company/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Activate Company!');window.location.href='/Company/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Company";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Activate Company";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -121,17 +147,31 @@ namespace AdminJobWeb.Controllers
                 if (result.DeletedCount == 0)
                 {
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Delete Company!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    //   return Content("<script>alert('Gagal Delete Company!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Company";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Company Tidak Ditemukan";
+                    return RedirectToAction("Index");
+
                 }
 
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Delete Company!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                //  return Content("<script>alert('Berhasil Delete Company!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Company";
+                return RedirectToAction("Index");
+
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+                //   Debug.WriteLine(e);
                 //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Company/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Company";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
     }

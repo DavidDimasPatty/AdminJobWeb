@@ -35,26 +35,26 @@
                                 <td>
                                     @if (item.statusAccount == "Active")
                                     {
-                                        <form asp-action="BlockApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="BlockApplicant" asp-controller="Applicant" method="post" class="d-inline BlockApplicant">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-warning btn-sm">
-                                                <i class="bx bx-check me-1"></i> Block
+                                                <i class="bx bx-block me-1"></i> Block
                                             </button>
                                         </form>
                                     }
                                     else
                                     {
-                                        <form asp-action="ActivateApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="ActivateApplicant" asp-controller="Applicant" method="post" class="d-inline ActivateApplicant">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bx bx-check me-1"></i> Activate
                                             </button>
                                         </form>
                                     }
-                                    <form asp-action="DeleteApplicant" asp-controller="Applicant" method="post" class="d-inline">
+                                    <form asp-action="DeleteApplicant" asp-controller="Applicant" method="post" class="d-inline DeleteApplicant">
                                         <input type="hidden" name="id" value="@item._id" />
                                         <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bx bx-check me-1"></i> Delete
+                                            <i class="bx bx-stop-circle me-1"></i> Delete
                                         </button>
                                     </form>
                                 </td>
@@ -71,8 +71,53 @@
 
 @section PageScripts {
     <script>
-        $(document).ready(function() {
-          $('#tableList').DataTable();
+        $(document).ready(function () {
+            $('#tableList').DataTable();
+
+
+            $(".BlockApplicant").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin block data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ActivateApplicant").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin activate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".DeleteApplicant").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin menghapus data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
         });
+
     </script>
 }

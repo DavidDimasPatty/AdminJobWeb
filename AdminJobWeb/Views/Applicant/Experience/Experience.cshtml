@@ -30,44 +30,45 @@
                         var i = 1;
                         foreach (var item in Model)
                         {
-                            <tr>
-                                <td>@i</td>
-                                <td>@item.namaPerusahaan</td>
-                                <td>@item.industri</td>
-                                <td>@item.lokasi</td>
-                                <td>@item.addId</td>
-                                <td>@item.addTime?.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                <td class="@(item.status=="Active"?"text-success":"text-danger")">@item.status</td>
-                                <td>
-                                    @if (item.status == "Active")
+                                <tr>
+                                    <td>@i</td>
+                                    <td>@item.namaPerusahaan</td>
+                                    <td>@item.industri</td>
+                                    <td>@item.lokasi</td>
+                                    <td>@item.addId</td>
+                                    <td>@item.addTime?.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                    <td class="@(item.status=="Active"?"text-success":"text-danger")">@item.status</td>
+                                    <td>
+                                        @if (item.status == "Active")
                                     {
-                                        <form asp-action="InactiveExperience" asp-controller="Applicant" method="post" class="d-inline">
-                                            <input type="hidden" name="id" value="@item._id" />
-                                            <button type="submit" class="btn btn-warning btn-sm">
-                                                <i class="bx bx-check me-1"></i> Inactive
-                                            </button>
-                                        </form>
+                                            <form asp-action="InactiveExperience" asp-controller="Applicant" method="post" class="d-inline InactiveExperience">
+                                                <input type="hidden" name="id" value="@item._id" />
+                                                <button type="submit" class="btn btn-warning btn-sm">
+                                                    <i class="bx bx-block me-1"></i> Inactive
+                                                </button>
+                                            </form>
                                     }
                                     else
                                     {
-                                        <form asp-action="ActivateExperience" asp-controller="Applicant" method="post" class="d-inline">
+                                            <form asp-action="ActivateExperience" asp-controller="Applicant" method="post" class="d-inline ActivateExperience">
+                                                <input type="hidden" name="id" value="@item._id" />
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="bx bx-check me-1"></i> Activate
+                                                </button>
+                                            </form>
+                                    }
+                                        <button id="EditExperience" class="btn btn-info btn-sm EditExperience" data-itemid="@item._id">
+                                            <i class="bx bx-edit me-1"></i> Edit
+                                        </button>
+
+                                        <form asp-action="DeleteExperience" asp-controller="Applicant" method="post" class="d-inline deleteExperience">
                                             <input type="hidden" name="id" value="@item._id" />
-                                            <button type="submit" class="btn btn-success btn-sm">
-                                                <i class="bx bx-check me-1"></i> Activate
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bx bx-stop-circle me-1"></i> Delete
                                             </button>
                                         </form>
-                                    }
-                                    <button id="EditExperience" class="btn btn-primary btn-sm EditExperience" data-itemid="@item._id">
-                                        <i class="bx bx-plus me-1"></i> Edit
-                                    </button>
-                                    <form asp-action="DeleteExperience" asp-controller="Applicant" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item._id" />
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bx bx-check me-1"></i> Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
                             i++;
                         }
                     }
@@ -88,6 +89,50 @@
     <script>
         $(document).ready(function () {
             $('#tableList').DataTable();
+            
+         
+            $(".deleteExperience").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin menghapus data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".InactiveExperience").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin inactivate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ActivateExperience").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin activate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
             $("#addExperience").on("click", function (e) {
                 e.preventDefault();
 
@@ -106,6 +151,7 @@
                     }
                 });
             });
+
             $(".EditExperience").on("click", function (e) {
                 e.preventDefault();
                 var url = "/Applicant/EditExperience";

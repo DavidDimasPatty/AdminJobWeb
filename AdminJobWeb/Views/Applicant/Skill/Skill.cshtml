@@ -37,16 +37,16 @@
                                 <td>
                                     @if (item.status == "Active")
                                     {
-                                        <form asp-action="InactiveSkill" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="InactiveSkill" asp-controller="Applicant" method="post" class="d-inline InactiveSkill">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-warning btn-sm">
-                                                <i class="bx bx-check me-1"></i> Inactive
+                                                <i class="bx bx-block me-1"></i> Inactive
                                             </button>
                                         </form>
                                     }
                                     else
                                     {
-                                        <form asp-action="ActivateSkill" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="ActivateSkill" asp-controller="Applicant" method="post" class="d-inline ActivateSkill">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bx bx-check me-1"></i> Activate
@@ -54,12 +54,12 @@
                                         </form>
                                     }
                                     <button id="EditSkill" class="btn btn-primary btn-sm EditSkill" data-itemid="@item._id">
-                                        <i class="bx bx-plus me-1"></i> Edit
+                                        <i class="bx bx-edit me-1"></i> Edit
                                     </button>
-                                    <form asp-action="DeleteSkill" asp-controller="Applicant" method="post" class="d-inline">
+                                    <form asp-action="DeleteSkill" asp-controller="Applicant" method="post" class="d-inline DeleteSkill">
                                         <input type="hidden" name="id" value="@item._id" />
                                         <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bx bx-check me-1"></i> Delete
+                                            <i class="bx bx-stop-circle me-1"></i> Delete
                                         </button>
                                     </form>
                                 </td>
@@ -84,6 +84,48 @@
     <script>
         $(document).ready(function () {
             $('#tableList').DataTable();
+            $(".DeleteSkill").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin menghapus data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".InactiveSkill").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin inactivate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ActivateSkill").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin activate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
             $("#addSkill").on("click", function (e) {
                 e.preventDefault();
 

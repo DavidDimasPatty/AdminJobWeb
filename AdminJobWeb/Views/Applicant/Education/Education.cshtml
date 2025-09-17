@@ -39,16 +39,16 @@
                                     <td>
                                         @if (item.status == "Active")
                                     {
-                                            <form asp-action="InactiveEducation" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="InactiveEducation" asp-controller="Applicant" method="post" class="d-inline InactiveEducation">
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <button type="submit" class="btn btn-warning btn-sm">
-                                                    <i class="bx bx-check me-1"></i> Inactive
+                                                    <i class="bx bx-block me-1"></i> Inactive
                                                 </button>
                                             </form>
                                     }
                                     else
                                     {
-                                            <form asp-action="ActivateEducation" asp-controller="Applicant" method="post" class="d-inline">
+                                        <form asp-action="ActivateEducation" asp-controller="Applicant" method="post" class="d-inline ActivateEducation">
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bx bx-check me-1"></i> Activate
@@ -56,12 +56,12 @@
                                             </form>
                                     }
                                        <button id="EditEducation" class="btn btn-primary btn-sm EditEducation" data-itemid="@item._id">
-                                            <i class="bx bx-plus me-1"></i> Edit
+                                            <i class="bx bx-edit me-1"></i> Edit
                                         </button>
-                                        <form asp-action="DeleteEducation" asp-controller="Applicant" method="post" class="d-inline">
+                                    <form asp-action="DeleteEducation" asp-controller="Applicant" method="post" class="d-inline DeleteEducation">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="bx bx-check me-1"></i> Delete
+                                            <i class="bx bx-stop-circle me-1"></i> Delete
                                             </button>
                                         </form>
                                     </td>
@@ -86,6 +86,47 @@
     <script>
         $(document).ready(function () {
             $('#tableList').DataTable();
+            $(".DeleteEducation").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin menghapus data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".InactiveEducation").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin inactivate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ActivateEducation").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin activate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
             $("#addEducation").on("click", function (e) {
                 e.preventDefault();
 

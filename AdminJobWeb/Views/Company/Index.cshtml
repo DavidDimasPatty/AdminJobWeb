@@ -35,16 +35,16 @@
                                 <td>
                                     @if (item.statusAccount == "Active")
                                     {
-                                        <form asp-action="BlockCompany" asp-controller="Company" method="post" class="d-inline">
+                                        <form asp-action="BlockCompany" asp-controller="Company" method="post" class="d-inline BlockCompany">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-warning btn-sm">
-                                                <i class="bx bx-check me-1"></i> Block
+                                                <i class="bx bx-block me-1"></i> Block
                                             </button>
                                         </form>
                                     }
                                     else if (item.statusAccount == "Block")
                                     {
-                                        <form asp-action="ActivateCompany" asp-controller="Company" method="post" class="d-inline">
+                                        <form asp-action="ActivateCompany" asp-controller="Company" method="post" class="d-inline ActivateCompany">
                                             <input type="hidden" name="id" value="@item._id" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bx bx-check me-1"></i> Activate
@@ -55,10 +55,10 @@
                                     {
                                         <label class="text-warning text-wrap w-50">Menunggu Validasi</label>
                                     }
-                                    <form asp-action="DeleteCompany" asp-controller="Company" method="post" class="d-inline">
+                                    <form asp-action="DeleteCompany" asp-controller="Company" method="post" class="d-inline DeleteCompany">
                                         <input type="hidden" name="id" value="@item._id" />
                                         <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bx bx-check me-1"></i> Delete
+                                            <i class="bx bx-stop-circle me-1"></i> Delete
                                         </button>
                                     </form>
                                 </td>
@@ -77,6 +77,47 @@
     <script>
         $(document).ready(function() {
           $('#tableList').DataTable();
+        });
+        $(".BlockCompany").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin ingin block data ini?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+
+        $(".ActivateCompany").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin ingin activate data ini?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+
+        $(".DeleteCompany").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin ingin menghapus data ini?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
         });
     </script>
 }
