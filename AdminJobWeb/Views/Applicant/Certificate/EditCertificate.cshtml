@@ -1,0 +1,32 @@
+﻿@model AdminJobWeb.Models.Applicant.Certificate;
+@{
+    Layout = null;
+}
+
+<div class="modal-content">
+    <form asp-action="EditCertificate" asp-controller="Applicant" method="post">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalLabel">Edit Certificate</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <input type="hidden" name="_id" value="@Model._id" />
+        <div class="modal-body">
+            <div class="row">
+                <div class="col mb-6">
+                    <label asp-for="nama" class="form-label">Nama</label>
+                    <input type="text" asp-for="nama" class="form-control" value="@Model.nama" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col mb-6">
+                    <label asp-for="publisher" class="form-label">Publisher</label>
+                    <textarea asp-for="publisher" class="form-control" required>@Model.publisher</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </form>
+</div>

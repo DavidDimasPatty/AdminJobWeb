@@ -1,0 +1,39 @@
+﻿@{
+    Layout = null;
+}
+@model AdminJobWeb.Models.Applicant.Experience;
+
+<div class="modal-content">
+    <form asp-action="AddExperience" asp-controller="Applicant" method="post">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalLabel">Add New Experience</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col mb-6">
+                    <label asp-for="namaPerusahaan" class="form-label">Nama Perusahaan</label>
+                    <input type="text" asp-for="namaPerusahaan" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col mb-6">
+                    <label asp-for="industri" class="form-label">Industri</label>
+                    <input type="text" asp-for="industri" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col mb-6">
+                    <label asp-for="lokasi" class="form-label">Lokasi</label>
+                    <textarea asp-for="lokasi" class="form-control" required></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </form>
+</div>

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AdminJobWeb.Models.Applicant
 {
+    [BsonIgnoreExtraElements]
     public class Applicant
     {
         [BsonId]
