@@ -76,7 +76,12 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index", "Home");
             }
         }
 
@@ -91,7 +96,11 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index", "Home");
             }
         }
 
@@ -104,7 +113,11 @@ namespace AdminJobWeb.Controllers
                 var keyCreateSurveyer = $"{username}_createSurveyer";
                 if (_cache.TryGetValue(keyCreateSurveyer, out _))
                 {
-                    return Content("<script>alert('Harap tunggu sebentar untuk create surveyer!');window.location.href='/Account/Index';</script>", "text/html");
+                    //return Content("<script>alert('Harap tunggu sebentar untuk create surveyer!');window.location.href='/Account/Index';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Akses";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Harap tunggu sebentar untuk create surveyer!";
+                    return RedirectToAction("Index", "Home");
                 }
 
                 var admin = await _adminCollection
@@ -358,7 +371,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -408,7 +425,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
             try
             {
