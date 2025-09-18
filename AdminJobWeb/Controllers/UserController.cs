@@ -3,6 +3,7 @@ using AdminJobWeb.Models.Account;
 using AdminJobWeb.Models.Applicant;
 using AdminJobWeb.Models.Company;
 using AdminJobWeb.Tracelog;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -64,7 +65,11 @@ namespace AdminJobWeb.Controllers
         {
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -77,8 +82,12 @@ namespace AdminJobWeb.Controllers
                 if (admins.Count == 0)
                 {
                     _tracelogUser.WriteLog("No admin users found in the database.");
-                    Debug.WriteLine("No admin users found in the database.");
-                    return Content("<script>alert('No admin users found in the database.');window.location.href='/Home/Index';</script>", "text/html");
+                    // Debug.WriteLine("No admin users found in the database.");
+                    // return Content("<script>alert('No admin users found in the database.');window.location.href='/Home/Index';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Akses";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "No admin users found in the database.";
+                    return RedirectToAction("Index","Home");
                 }
 
                 _tracelogUser.WriteLog($"Retrieved {admins.Count} admin users from the database.");
@@ -93,7 +102,11 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogUser.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index", "Home");
             }
         }
 
@@ -103,7 +116,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             return PartialView("_Partials/_ModalCreate");
@@ -115,7 +132,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -139,7 +160,11 @@ namespace AdminJobWeb.Controllers
                 if (existingEmailAdmin + existingEmailSurveyor + existingEmailApplicant + existingEmailCompany > 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Email sudah memiliki akun!");
-                    return Content($"<script>alert('Email sudah memiliki akun!');window.location.href='/User/Index'</script>", "text/html");
+                    //  return Content($"<script>alert('Email sudah memiliki akun!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Send Form Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Email sudah memiliki akun!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Start Send Form to Create Admin Account to {objData.email}");
@@ -202,13 +227,21 @@ namespace AdminJobWeb.Controllers
                 await _keyGenerateCollection.InsertOneAsync(keyGenerate);
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil mengirimkan form untuk pembuatan Admin baru ke {objData.email}");
-                return Content("<script>alert('Berhasil mengirimkan link untuk pembuatan Admin baru. Silahkan hubungi user terkait untuk mengecek email!');window.location.href='/User/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil mengirimkan link untuk pembuatan Admin baru. Silahkan hubungi user terkait untuk mengecek email!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil mengirimkan link untuk pembuatan Admin baru. Silahkan hubungi user terkait untuk mengecek email!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed send form to create new admin to {objData.email}, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Send Form Admin";
+                TempData["icon"] = "error";
+                TempData["text"] =e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -224,19 +257,31 @@ namespace AdminJobWeb.Controllers
             if (admin == null)
             {
                 _tracelogUser.WriteLog($"User : {username}, Key Tidak Ditemukan!");
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                // return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "User Tidak Ditemukan!";
+                return RedirectToAction("Index","Account");
             }
 
             if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
             {
                 _tracelogUser.WriteLog($"User : {username}, Link Expired!");
-                return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
+                // return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Link Expired!";
+                return RedirectToAction("Index", "Account");
             }
 
             if (admin.used == "Y")
             {
                 _tracelogUser.WriteLog($"User : {username}, Link Sudah Digunakan!");
-                return Content("<script>alert('Link Sudah Digunakan!');window.location.href='/Account/Index'</script>", "text/html");
+                //  return Content("<script>alert('Link Sudah Digunakan!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Link Sudah Digunakan!";
+                return RedirectToAction("Index", "Account");
             }
 
             ViewBag.email = username;
@@ -282,31 +327,51 @@ namespace AdminJobWeb.Controllers
                 if (string.IsNullOrEmpty(dataObj.username) || string.IsNullOrEmpty(dataObj.email))
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Data Tidak Boleh Kosong!");
-                    return Content($"<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                   // return Content($"<script>alert('Data Tidak Boleh Kosong!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Boleh Kosong!";
+                    return RedirectToAction("CreateAdmin", new { username= dataObj.email ,key=key});
                 }
 
                 if (existingUsernameAdmin + existingUsernameSurveyor > 0)
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Username Sudah Ada!");
-                    return Content($"<script>alert('Username Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    // return Content($"<script>alert('Username Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Username Sudah Ada!";
+                    return RedirectToAction("CreateAdmin", new { username = dataObj.email, key = key });
                 }
 
                 if (!string.IsNullOrEmpty(dataObj.email) && !dataObj.email.Contains("@"))
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Email Tidak Valid!");
-                    return Content($"<script>alert('Email Tidak Valid!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    // return Content($"<script>alert('Email Tidak Valid!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Email Tidak Valid!";
+                    return RedirectToAction("CreateAdmin", new { username = dataObj.email, key = key });
                 }
 
                 if (existingEmailAdmin + existingEmailSurveyor + existingEmailApplicant + existingEmailCompany > 0)
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Email Sudah Ada!");
-                    return Content($"<script>alert('Email Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    //return Content($"<script>alert('Email Sudah Ada!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Email Sudah Ada!";
+                    return RedirectToAction("CreateAdmin", new { username = dataObj.email, key = key });
                 }
 
                 if (password != passwordRet)
                 {
                     _tracelogUser.WriteLog($"User : {dataObj.email}, Password Tidak Sama!");
-                    return Content($"<script>alert('Password Tidak Sama!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    // return Content($"<script>alert('Password Tidak Sama!');window.location.href='/User/CreateAdmin?username={dataObj.email}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Password Tidak Sama!";
+                    return RedirectToAction("CreateAdmin", new { username = dataObj.email, key = key });
                 }
 
                 byte[] passwordSalt = [];
@@ -342,13 +407,21 @@ namespace AdminJobWeb.Controllers
                 await _keyGenerateCollection.UpdateOneAsync(filter, update);
 
                 _tracelogUser.WriteLog($"User : {dataObj.email}, Berhasil Create New Admin {dataObj.username}");
-                return Content("<script>alert('Berhasil membuat admin baru. Mohon hubungi Super Admin untuk approval akun Anda!');window.location.href='/Account/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil membuat admin baru. Mohon hubungi Super Admin untuk approval akun Anda!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Create Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil membuat admin baru. Mohon hubungi Super Admin untuk approval akun Anda!";
+                return RedirectToAction("Index", "Account");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {dataObj.username}, Failed Create New Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Create Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index","Account");
             }
         }
 
@@ -359,7 +432,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index","Home");
             }
 
             try
@@ -374,17 +451,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Approval New Admin, Data tidak ditemukan");
-                    return Content("<script>alert('Gagal Approval New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Approval New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Approve Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Gagal Approval New Admin!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Approval New Admin");
-                return Content("<script>alert('Berhasil Approval New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Approval New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Approve Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Approval New Admin!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Approval New Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Approve Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -395,7 +484,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -410,17 +503,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Reject New Admin, Data tidak ditemukan");
-                    return Content("<script>alert('Gagal Reject New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Reject New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Reject Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Gagal Reject New Admin!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Reject New Admin");
-                return Content("<script>alert('Berhasil Reject New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Reject New Admin!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Reject Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Reject New Admin!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Reject New Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reject Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -431,7 +536,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -446,17 +555,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Block Admin, Data tidak ditemukan");
-                    return Content("<script>alert('Gagal Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Block Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Gagal Block Admin!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Block Admin");
-                return Content("<script>alert('Berhasil Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Block Admin!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Block Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Block Admin!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Block Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Block Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -467,7 +588,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //  return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -482,17 +607,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Activate Admin, Data tidak ditemukan");
-                    return Content("<script>alert('Gagal Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    //return Content("<script>alert('Gagal Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Activate Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Gagal Activate Admin!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Activate Admin");
-                return Content("<script>alert('Berhasil Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Activate Admin!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Activate Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Admin!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Activate Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Activate Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -503,7 +640,11 @@ namespace AdminJobWeb.Controllers
             string adminLogin = HttpContext.Session.GetString("username")!;
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //    return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -516,17 +657,29 @@ namespace AdminJobWeb.Controllers
                 if (result.DeletedCount == 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Gagal Delete Admin, Data tidak ditemukan");
-                    return Content("<script>alert('Gagal Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Admin";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Gagal Delete Admin!";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogUser.WriteLog($"User : {adminLogin}, Berhasil Delete Admin");
-                return Content("<script>alert('Berhasil Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Delete Admin!');window.location.href='/User/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Delete Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Admin!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogUser.WriteLog($"User : {adminLogin}, Failed Delete Admin, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
     }

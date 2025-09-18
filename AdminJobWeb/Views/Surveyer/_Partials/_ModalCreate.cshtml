@@ -4,7 +4,7 @@
 @model AdminJobWeb.Models.Account.surveyers
 
 <div class="modal-content">
-    <form asp-action="CreateSurveyer" asp-controller="Surveyer" method="post">
+    <form asp-action="CreateSurveyer" asp-controller="Surveyer" method="post" class="formPop">
         <div class="modal-header">
             <h5 class="modal-title" id="modalLabel">Create New Surveyer</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -29,3 +29,27 @@
         </div>
     </form>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .swal2-container {
+        z-index: 20000 !important;
+    }
+</style>
+<script>
+    $(document).ready(function () {
+        $(".formPop").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin data sudah lengkap?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+    });
+</script>

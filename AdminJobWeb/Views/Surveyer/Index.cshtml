@@ -78,7 +78,7 @@
                                     {
                                         @if (item.statusAccount == "Active")
                                         {
-                                            <form asp-action="BlockSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                            <form asp-action="BlockSurveyer" asp-controller="Surveyer" method="post" class="d-inline BlockSurveyer">
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <button type="submit" class="btn btn-warning btn-sm">
                                                     <i class="bx bx-x me-1"></i> Block
@@ -88,7 +88,7 @@
 
                                         else if (item.statusAccount == "Block")
                                         {
-                                            <form asp-action="ActivateSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                            <form asp-action="ActivateSurveyer" asp-controller="Surveyer" method="post" class="d-inline ActivateSurveyer">
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <button type="submit" class="btn btn-info btn-sm">
                                                     <i class="bx bx-x me-1"></i> Activate
@@ -97,7 +97,7 @@
                                         }
                                     }
 
-                                    <form asp-action="DeleteSurveyer" asp-controller="Surveyer" method="post" class="d-inline">
+                                    <form asp-action="DeleteSurveyer" asp-controller="Surveyer" method="post" class="d-inline DeleteSurveyer">
                                         <input type="hidden" name="id" value="@item._id" />
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bx bx-x me-1"></i> Delete Surveyer
@@ -141,6 +141,49 @@
                     error: function (xhr, status, err) {
                         console.error("AJAX error:", status, err);
                         alert("Gagal memuat form. Cek console untuk detail.");
+                    }
+                });
+            });
+
+
+            $(".DeleteSurveyer").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin menghapus data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".BlockSurveyer").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin inactivate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ActivateSurveyer").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin activate data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
                     }
                 });
             });

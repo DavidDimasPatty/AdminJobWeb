@@ -3,7 +3,7 @@
 <div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form asp-action="RejectAdmin" asp-controller="Validasi" method="post">
+            <form asp-action="RejectAdmin" asp-controller="Validasi" method="post" class="formPop">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalLabel">Reject Perusahaan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -28,3 +28,25 @@
         </div>
     </div>
 </div>
+<style>
+    .swal2-container {
+        z-index: 20000 !important;
+    }
+</style>
+<script>
+    $(document).ready(function () {
+        $(".formPop").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin data sudah lengkap?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+    });
+</script>

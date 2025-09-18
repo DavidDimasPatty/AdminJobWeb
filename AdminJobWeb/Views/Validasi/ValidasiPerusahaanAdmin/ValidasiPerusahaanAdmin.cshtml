@@ -71,7 +71,7 @@
                                 <td>
                                     @if (item.perusahaanAdmin.status == "Pending")
                                     {
-                                        <form asp-action="ApprovalAdmin" asp-controller="Validasi" class="d-inline">
+                                        <form asp-action="ApprovalAdmin" asp-controller="Validasi" class="d-inline ApprovalAdmin">
                                             <input type="hidden" name="id" value="@item.perusahaanAdmin._id" />
                                             <input type="hidden" name="idPerusahaan" value="@item.company._id" />
                                             <button type="submit" class="btn btn-success btn-sm">
@@ -106,4 +106,20 @@
 
 @section PageScripts {
     <script src="~/js/modal-validasi-admin.js" asp-append-version="true"></script>
+
+    <script>
+        $(".ApprovalAdmin").on("submit", function (e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: "question",
+                title: "Yakin ingin ubah data ini?",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+    </script>
 }

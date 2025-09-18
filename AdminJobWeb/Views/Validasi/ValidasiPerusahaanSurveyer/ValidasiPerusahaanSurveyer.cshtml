@@ -87,7 +87,7 @@
                                     if (ViewBag.loginAs == "Survey")
                                     {
                                         <td>
-                                            <form asp-action="ApprovalSurveyer" asp-controller="Validasi" method="post" class="d-inline">
+                                            <form asp-action="ApprovalSurveyer" asp-controller="Validasi" method="post" class="d-inline ApprovalSurveyer">
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <input type="hidden" name="idPerusahaan" value="@item.idPerusahaan" />
                                                 <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
@@ -141,7 +141,37 @@
 @section PageScripts {
     <script>
         $(document).ready(function () {
-             $('#tableList').DataTable();
+            $('#tableList').DataTable();
+
+            $(".ApprovalSurveyer").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin ubah data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+            $(".ProcessSurveyer").on("submit", function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "question",
+                    title: "Yakin ingin process data ini?",
+                    showCancelButton: true,
+                    confirmButtonText: "Submit",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
+            });
+
+
             $("#addSurveyer").on("click", function (e) {
                 e.preventDefault();
 
@@ -166,55 +196,55 @@
                 });
             });
 
-                 $("#rejectSurveyer").on("click", function (e) {
-                        e.preventDefault();
+            $("#rejectSurveyer").on("click", function (e) {
+                e.preventDefault();
 
-                        var url = "/Validasi/RejectSurveyer";
-                        $.ajax({
-                            url: url,
-                            type: "GET",
-                            cache: false,
-                            data:{
-                                id: $(this).attr("data-id"),
-                                idPerusahaan : $(this).attr("data-idPerusahaan"),
-                                namaPerusahaan: $(this).attr("data-namaPerusahaan"),
-                                idSurveyer: $(this).attr("data-idSurveyer")
-                            },
-                            success: function (data) {
-                                $("#exampleModal .modal-dialog").html(data);
-                                $("#exampleModal").modal('show');
-                            },
-                            error: function (xhr, status, err) {
-                                console.error("AJAX error:", status, err);
-                                alert("Gagal memuat form. Cek console untuk detail.");
-                            }
-                        });
-                    });
-
-
-                             $("#reasonRejectSurveyer").on("click", function (e) {
-                                e.preventDefault();
-
-                                var url = "/Validasi/DetailRejectSurveyer";
-                                $.ajax({
-                                    url: url,
-                                    type: "GET",
-                                    cache: false,
-                                    data:{
-                                        id: $(this).attr("data-id"),
-                                        idPerusahaan : $(this).attr("data-idPerusahaan"),
-                                        namaPerusahaan: $(this).attr("data-namaPerusahaan"),
-                                    },
-                                    success: function (data) {
-                                        $("#exampleModal .modal-dialog").html(data);
-                                        $("#exampleModal").modal('show');
-                                    },
-                                    error: function (xhr, status, err) {
-                                        console.error("AJAX error:", status, err);
-                                        alert("Gagal memuat form. Cek console untuk detail.");
-                                    }
-                                });
-                            });
+                var url = "/Validasi/RejectSurveyer";
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    cache: false,
+                    data: {
+                        id: $(this).attr("data-id"),
+                        idPerusahaan: $(this).attr("data-idPerusahaan"),
+                        namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                        idSurveyer: $(this).attr("data-idSurveyer")
+                    },
+                    success: function (data) {
+                        $("#exampleModal .modal-dialog").html(data);
+                        $("#exampleModal").modal('show');
+                    },
+                    error: function (xhr, status, err) {
+                        console.error("AJAX error:", status, err);
+                        alert("Gagal memuat form. Cek console untuk detail.");
+                    }
                 });
+            });
+
+
+            $("#reasonRejectSurveyer").on("click", function (e) {
+                e.preventDefault();
+
+                var url = "/Validasi/DetailRejectSurveyer";
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    cache: false,
+                    data: {
+                        id: $(this).attr("data-id"),
+                        idPerusahaan: $(this).attr("data-idPerusahaan"),
+                        namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                    },
+                    success: function (data) {
+                        $("#exampleModal .modal-dialog").html(data);
+                        $("#exampleModal").modal('show');
+                    },
+                    error: function (xhr, status, err) {
+                        console.error("AJAX error:", status, err);
+                        alert("Gagal memuat form. Cek console untuk detail.");
+                    }
+                });
+            });
+        });
     </script>
 }

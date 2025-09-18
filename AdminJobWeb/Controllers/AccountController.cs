@@ -93,7 +93,9 @@ namespace AdminJobWeb.Controllers
                     ViewBag.diffSec = diffSecRemain;
                 }
             }
-
+            ViewBag.titlePopUp = TempData["titlePopUp"];
+            ViewBag.icon = TempData["icon"];
+            ViewBag.text = TempData["text"];
             return View("Login");
         }
 
@@ -120,7 +122,11 @@ namespace AdminJobWeb.Controllers
                         int diffMin = diff.Minutes;
                         int diffSec = diff.Seconds;
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
-                        return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
+                        //return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Login";
+                        TempData["icon"] = "error";
+                        TempData["text"] = $"Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!";
+                        return RedirectToAction("Index");
                     }
 
                     tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
@@ -152,14 +158,23 @@ namespace AdminJobWeb.Controllers
                                     }
                                     HttpContext.Session.SetInt32("loginCount", admin.loginCount + 1);
                                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                    return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                    // return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                    TempData["titlePopUp"] = "Gagal Login";
+                                    TempData["icon"] = "error";
+                                    TempData["text"] = "Password Salah!";
+                                    return RedirectToAction("Index");
+
                                 }
                                 else
                                 {
                                     var updateBlock = Builders<admin>.Update.Set(p => p.statusAccount, "Block");
                                     await _adminCollection.UpdateOneAsync(filter, updateBlock);
                                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                    return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                    //return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                    TempData["titlePopUp"] = "Gagal Login";
+                                    TempData["icon"] = "error";
+                                    TempData["text"] = "Akun Anda Di Block!";
+                                    return RedirectToAction("Index");
                                 }
                             }
 
@@ -197,7 +212,30 @@ namespace AdminJobWeb.Controllers
                     tracelog.WriteLog($"User : {username}, Success Get Menu Items");
 
                     tracelog.WriteLog($"User : {username}, Success Login");
-                    return RedirectToAction("Index", "Home");
+                    //return RedirectToAction("Index", "Home");
+                    string script = @"
+                    <html>
+                        <head>
+                            <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+                        </head>
+                        <body>
+                           <script>
+                                Swal.fire({
+                                    title: 'Login Berhasil',
+                                    text: 'Selamat datang kembali!',
+                                    icon: 'success',
+                                    showConfirmButton: false,
+                                    timer: 2000,
+                                    timerProgressBar: true,
+                                    willClose: () => {
+                                        window.location.href = '/Home/Index';
+                                    }
+                                });
+                            </script>
+                        </body>
+                    </html>";
+
+                    return Content(script, "text/html");
                 }
                 else
                 {
@@ -211,7 +249,12 @@ namespace AdminJobWeb.Controllers
                     if (surveyer == null)
                     {
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        //return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Login";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "User Tidak Ditemukan!";
+                        return RedirectToAction("Index");
+
                     }
 
 
@@ -221,7 +264,11 @@ namespace AdminJobWeb.Controllers
                         int? diffMin = diff?.Minutes;
                         int? diffSec = diff?.Seconds;
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User masih pending {diffMin} Menit dan {diffSec} detik");
-                        return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
+                        //return Content($"<script>alert('Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!');window.location.href='/Account/Index'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Login";
+                        TempData["icon"] = "error";
+                        TempData["text"] = $"Anda masih harus menunggu {diffMin} Menit dan {diffSec} detik!";
+                        return RedirectToAction("Index");
                     }
 
                     tracelog.WriteLog($"User : {username}, Success Hit Database Admin");
@@ -253,14 +300,24 @@ namespace AdminJobWeb.Controllers
                                     }
                                     HttpContext.Session.SetInt32("loginCount", surveyer.loginCount + 1);
                                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                    return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                    //return Content("<script>alert('Password Salah!');window.location.href='/Account/Index'</script>", "text/html");
+                                    TempData["titlePopUp"] = "Gagal Login";
+                                    TempData["icon"] = "error";
+                                    TempData["text"] = "Password Salah!";
+                                    return RedirectToAction("Index");
+
                                 }
                                 else
                                 {
                                     var updateBlock = Builders<surveyers>.Update.Set(p => p.statusAccount, "Block");
                                     await _surveyerCollection.UpdateOneAsync(filter, updateBlock);
                                     tracelog.WriteLog($"User : {username}, Failed Login, Reason: Password Salah");
-                                    return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                    // return Content("<script>alert('Akun Anda Di Block!');window.location.href='/Account/Index'</script>", "text/html");
+                                    TempData["titlePopUp"] = "Gagal Login";
+                                    TempData["icon"] = "error";
+                                    TempData["text"] = "Akun Anda Di Block!";
+                                    return RedirectToAction("Index");
+
                                 }
                             }
 
@@ -294,14 +351,42 @@ namespace AdminJobWeb.Controllers
                     tracelog.WriteLog($"User : {username}, Success Get Menu Items");
 
                     tracelog.WriteLog($"User : {username}, Success Login");
-                    return RedirectToAction("Index", "Home");
+                    //return RedirectToAction("Index", "Home");
+                    string script = @"
+                    <html>
+                        <head>
+                            <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+                        </head>
+                        <body>
+                           <script>
+                                Swal.fire({
+                                    title: 'Login Berhasil',
+                                    text: 'Selamat datang kembali!',
+                                    icon: 'success',
+                                    showConfirmButton: false,
+                                    timer: 2000,
+                                    timerProgressBar: true,
+                                    willClose: () => {
+                                        window.location.href = '/Home/Index';
+                                    }
+                                });
+                            </script>
+                        </body>
+                    </html>";
+
+                    return Content(script, "text/html");
                 }
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 tracelog.WriteLog($"User : {username}, Failed Login, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/LogOut';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/Account/LogOut';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Login";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
+
             }
         }
 
@@ -320,7 +405,11 @@ namespace AdminJobWeb.Controllers
                 var keyReset = $"{username}_resetPassword";
                 if (_cache.TryGetValue(keyReset, out _))
                 {
-                    return Content("<script>alert('Harap tunggu sebentar untuk reset password!');window.location.href='/Account/Index';</script>", "text/html");
+                    //return Content("<script>alert('Harap tunggu sebentar untuk reset password!');window.location.href='/Account/Index';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Reset Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Harap tunggu sebentar untuk reset password!";
+                    return RedirectToAction("ResetPassword");
                 }
                 tracelog.WriteLog($"User : {username}, Start Reset Password");
                 tracelog.WriteLog($"User : {username}, Start Hit Database Admin");
@@ -345,7 +434,11 @@ namespace AdminJobWeb.Controllers
                     if (surveyer == null)
                     {
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        // return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "User Tidak Ditemukan!";
+                        return RedirectToAction("ResetPassword");
                     }
                 }
 
@@ -415,13 +508,21 @@ namespace AdminJobWeb.Controllers
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
                     Size = 1
                 });
-                return Content("<script>alert('Mohon Cek Email!');window.location.href='/Account/Index';</script>", "text/html");
+                //return Content("<script>alert('Mohon Cek Email!');window.location.href='/Account/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Mohon Check Email!";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 tracelog.WriteLog($"User : {username}, Failed Reset Password, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                //  return Content($"<script>alert('{e.Message}');window.location.href='/Account/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reset Password";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("ResetPassword");
             }
         }
 
@@ -437,11 +538,21 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                // return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reset Password";
+                TempData["icon"] = "error";
+                TempData["text"] = "User Tidak Ditemukan!";
+                return RedirectToAction("Index");
             }
 
             if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
-                return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
+            {
+                TempData["titlePopUp"] = "Gagal Reset Password";
+                TempData["icon"] = "error";
+                TempData["text"] = "Link Expired!";
+                return RedirectToAction("Index");
+            }
+               // return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
 
             ViewBag.username = username;
             ViewBag.key = key;
@@ -455,7 +566,11 @@ namespace AdminJobWeb.Controllers
             {
                 if (password != passwordRet)
                 {
-                    return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Reset Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Password Tidak Sama!";
+                    return RedirectToAction("CreateResetPassword", new { username = username, key = key });
+                    //return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
                 }
                 surveyers surveyer = new surveyers();
                 admin admin = new admin();
@@ -477,7 +592,11 @@ namespace AdminJobWeb.Controllers
                     if (surveyer == null)
                     {
                         tracelog.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                        return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        //return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "User Tidak Ditemukan!";
+                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
                 }
 
@@ -502,7 +621,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassNow == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        // return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Sekarang!";
+                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
 
 
@@ -523,7 +646,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassOld == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        //return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
+                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
 
                     byte[] passwordSalt = [];
@@ -573,7 +700,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassNow == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        // return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Sekarang!";
+                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
 
 
@@ -594,7 +725,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassOld == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        // return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Reset Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
+                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
 
                     byte[] passwordSalt = [];
@@ -622,12 +757,38 @@ namespace AdminJobWeb.Controllers
                         Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
                     var result = await _surveyerCollection.UpdateOneAsync(filter, update);
                 }
-                return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
+                string script = @"
+                    <html>
+                        <head>
+                            <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+                        </head>
+                        <body>
+                           <script>
+                                Swal.fire({
+                                    title: 'Reset Berhasil',
+                                    text: 'Success Reset Password!',
+                                    icon: 'success',
+                                    showConfirmButton: false,
+                                    timer: 2000,
+                                    timerProgressBar: true,
+                                    willClose: () => {
+                                        window.location.href = '/Account/Index';
+                                    Account
+                                });
+                            </script>
+                        </body>
+                    </html>";
+                return Content(script, "text/html");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reset Password";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("CreateResetPassword", new { username=username,key=key});
             }
         }
 
@@ -649,12 +810,20 @@ namespace AdminJobWeb.Controllers
                 string username = HttpContext.Session.GetString("username")!;
                 if (password == passwordNow)
                 {
-                    return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    //return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Sekarang!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Password Tidak Boleh Sama dengan Password Sekarang!";
+                    return RedirectToAction("EditPassword");
                 }
 
                 if (password != passwordRet)
                 {
-                    return Content($"<script>alert('Password Baru Tidak Sama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    //return Content($"<script>alert('Password Baru Tidak Sama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Edit Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Password Baru Tidak Sama!";
+                    return RedirectToAction("EditPassword");
                 }
 
                 surveyers surveyer = new surveyers();
@@ -669,7 +838,11 @@ namespace AdminJobWeb.Controllers
 
                     if (admin == null)
                     {
-                        return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        //return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Edit Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "User Tidak Ditemukan!";
+                        return RedirectToAction("EditPassword");
                     }
 
                     using (var hmac = new HMACSHA512(admin.saltHash))
@@ -681,7 +854,11 @@ namespace AdminJobWeb.Controllers
 
                             if (computedHash[i] != admin.password[i])
                             {
-                                return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                                // return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                                TempData["titlePopUp"] = "Gagal Edit Password";
+                                TempData["icon"] = "error";
+                                TempData["text"] = "Password Sekarang Salah!";
+                                return RedirectToAction("EditPassword");
                             }
 
                         }
@@ -704,7 +881,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassOld == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        //   return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Edit Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
+                        return RedirectToAction("EditPassword");
                     }
 
                     byte[] passwordSalt = [];
@@ -734,7 +915,11 @@ namespace AdminJobWeb.Controllers
 
                     if (surveyer == null)
                     {
-                        return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        //return Content($"<script>alert('User Tidak Ditemukan!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Edit Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "User Tidak Ditemukan!";
+                        return RedirectToAction("EditPassword");
                     }
 
                     using (var hmac = new HMACSHA512(surveyer.saltHash))
@@ -746,7 +931,11 @@ namespace AdminJobWeb.Controllers
 
                             if (computedHash[i] != surveyer.password[i])
                             {
-                                return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                                // return Content("<script>alert('Password Sekarang Salah!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                                TempData["titlePopUp"] = "Gagal Edit Password";
+                                TempData["icon"] = "error";
+                                TempData["text"] = "Password Sekarang Salah!";
+                                return RedirectToAction("EditPassword");
                             }
 
                         }
@@ -769,7 +958,11 @@ namespace AdminJobWeb.Controllers
 
                     if (checkPassOld == true)
                     {
-                        return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        //  return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                        TempData["titlePopUp"] = "Gagal Edit Password";
+                        TempData["icon"] = "error";
+                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
+                        return RedirectToAction("EditPassword");
                     }
 
                     byte[] passwordSalt = [];
@@ -790,12 +983,21 @@ namespace AdminJobWeb.Controllers
                         Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
                     var result = await _surveyerCollection.UpdateOneAsync(filter, update);
                 }
-                return Content("<script>alert('Berhasil Edit Password!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Edit Password!');window.location.href='/Account/EditPassword'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Edit Password";
+                return RedirectToAction("EditPassword");
+
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Account/EditPassword'</script>", "text/html");
+                //Debug.WriteLine(e);
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Account/EditPassword'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Edit Password";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("EditPassword");
             }
         }
 

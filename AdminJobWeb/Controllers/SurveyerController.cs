@@ -132,7 +132,12 @@ namespace AdminJobWeb.Controllers
                 if (admin + surveyer + applicant + company > 0)
                 {
 
-                    return Content($"<script>alert('Username atau Email Sudah Terdaftar');window.location.href='/Surveyer/Index';</script>", "text/html");
+                    // return Content($"<script>alert('Username atau Email Sudah Terdaftar');window.location.href='/Surveyer/Index';</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Username atau Email Sudah Terdaftar";
+                    return RedirectToAction("Index");
+
                 }
 
                 var key = generalFunction1.GenerateRandomKey();
@@ -222,13 +227,21 @@ namespace AdminJobWeb.Controllers
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
                     Size = 1
                 });
-                return Content($"<script>alert('Success Add Surveyer');window.location.href='/Surveyer/Index';</script>", "text/html");
+                //return Content($"<script>alert('Success Add Surveyer');window.location.href='/Surveyer/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Create Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+               // Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Create Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -244,11 +257,21 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                //  return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "User Tidak Ditemukan!";
+                return RedirectToAction("Index","Account");
             }
 
             if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
-                return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Link Expired!";
+                return RedirectToAction("Index", "Account");
+            }
+                //return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
 
             ViewBag.username = username;
             ViewBag.key = key;
@@ -262,7 +285,11 @@ namespace AdminJobWeb.Controllers
             {
                 if (password != passwordRet)
                 {
-                    return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    //return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Password Tidak Sama!";
+                    return RedirectToAction("CreateForm", new { username=username,key=key});
                 }
                 surveyers surveyer = new surveyers();
 
@@ -275,7 +302,11 @@ namespace AdminJobWeb.Controllers
                 if (surveyer == null)
                 {
                     _tracelogSurveyer.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                    return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                    //return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Create Password";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "User Tidak Ditemukan!";
+                    return RedirectToAction("CreateForm", new { username = username, key = key });
                 }
 
 
@@ -303,12 +334,20 @@ namespace AdminJobWeb.Controllers
                     Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
                 var result = await _surveyerCollection.UpdateOneAsync(filter, update);
 
-                return Content("<script>alert('Berhasil Create Surveyer');window.location.href='/Account/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Create Surveyer');window.location.href='/Account/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Create Password";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Create Surveyer!";
+                return RedirectToAction("Index","Account");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
-                return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/CreateForm?username={username}&key={key}'</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/CreateForm?username={username}&key={key}'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Create Password";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("CreateForm", new { username = username, key = key });
             }
         }
 
@@ -333,18 +372,32 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Approval New Surveyer");
-                    return Content("<script>alert('Gagal Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Approval New Surveyer");
+                    //return Content("<script>alert('Gagal Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Approve Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Index");
+
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Approval New Surveyer");
-                return Content("<script>alert('Berhasil Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                // return Content("<script>alert('Berhasil Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Approve Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+               // Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Approval New Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Approve Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -369,17 +422,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Reject New Surveyer");
-                    return Content("<script>alert('Gagal Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Reject Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Reject New Surveyer");
-                return Content("<script>alert('Berhasil Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Reject Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Reject New Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reject Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -399,17 +465,30 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    return Content("<script>alert('Gagal Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    //  return Content("<script>alert('Gagal Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Block Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                return Content("<script>alert('Berhasil Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                //return Content("<script>alert('Berhasil Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Block Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Block Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
@@ -428,18 +507,29 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Activate Surveyer");
-                    return Content("<script>alert('Gagal Activate Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Activate Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Activate Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Activate Surveyer");
-                return Content("<script>alert('Berhasil Activate Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
-
+                //return Content("<script>alert('Berhasil Activate Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Activate Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Activate Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                //   return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Activate Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
 
         }
@@ -458,17 +548,29 @@ namespace AdminJobWeb.Controllers
                 if (result.DeletedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Delete Surveyer");
-                    return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    // return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    TempData["titlePopUp"] = "Gagal Delete Surveyer";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Data Tidak Ditemukan";
+                    return RedirectToAction("Index");
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Delete Surveyer");
-                return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                //  return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Success";
+                TempData["icon"] = "success";
+                TempData["text"] = "Berhasil Delete Surveyer";
+                return RedirectToAction("Index");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Delete Surveyer, Reason : {e.Message}");
-                return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                //return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Delete Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = e.Message;
+                return RedirectToAction("Index");
             }
         }
 
