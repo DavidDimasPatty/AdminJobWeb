@@ -4,6 +4,9 @@
         function initModalUser() {
             $.get({
                 url: '/User/SendFormAdmin',
+                data: {
+                    link:"@ViewBag.link"
+                }
             })
                 .done(function (data) {
                     $('#modalContainer').html(data);

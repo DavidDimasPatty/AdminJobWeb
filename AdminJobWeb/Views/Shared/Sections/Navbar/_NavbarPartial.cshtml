@@ -1,11 +1,16 @@
 @* ! Brand demo (display only for navbar-full and hide on below xl) *@
+@inject IHttpContextAccessor HttpContextAccessor;
+@{
+    var session = HttpContextAccessor.HttpContext.Session.GetString("username");
+    var logAs = HttpContextAccessor.HttpContext.Session.GetString("loginAs");
+}
 @if (ViewData["navbarFull"] != null)
 {
     <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-4">
         <a asp-controller="Dashboards" asp-action="Index" class="app-brand-link gap-2">
-            <span class="app-brand-logo demo">
-                @await Html.PartialAsync("../_Partials/_Macros")
-            </span>
+            @*             <span class="app-brand-logo demo">
+        @await Html.PartialAsync("../_Partials/_Macros")
+        </span> *@
             <span class="app-brand-text demo menu-text fw-bold">@TempData.Peek("appName")</span>
         </a>
     </div>
@@ -24,34 +29,50 @@
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
 
     <!-- Search -->
-    <div class="navbar-nav align-items-center">
-        <div class="nav-item d-flex align-items-center">
-            <i class="bx bx-search bx-md"></i>
-            <input type="text" class="form-control border-0 shadow-none ps-1 ps-sm-2" placeholder="Search..." aria-label="Search...">
-        </div>
+    @*     <div class="navbar-nav align-items-center">
+    <div class="nav-item d-flex align-items-center">
+    <i class="bx bx-search bx-md"></i>
+    <input type="text" class="form-control border-0 shadow-none ps-1 ps-sm-2" placeholder="Search..." aria-label="Search...">
     </div>
+    </div> *@
     <!-- /Search -->
 
     <ul class="navbar-nav flex-row align-items-center ms-auto">
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
             <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
-                <div class="avatar avatar-online">
-                    <img src="~/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle">
+                @*  <div class="avatar avatar-online"> *@
+                @*                     <img src="~/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle"> *@
+                <div class="w-px-40 h-px-40 rounded-circle" style="background-color:cornflowerblue;">
+                    <center class="text-light">
+                        @if (!string.IsNullOrEmpty(session))
+                        {
+                            <h4 style="color:white;">@session.Substring(0, 1).ToUpper()</h4>
+                        }
+                    </center>
                 </div>
+                @*                 </div> *@
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
                     <a class="dropdown-item" href="javascript:void(0);">
                         <div class="d-flex">
                             <div class="flex-shrink-0 me-3">
-                                <div class="avatar avatar-online">
+                               @*  <div class="avatar avatar-online">
                                     <img src="~/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle">
+                                </div> *@
+                                <div class="w-px-40 h-px-40 rounded-circle" style="background-color:cornflowerblue;">
+                                    <center class="text-light">
+                                        @if (!string.IsNullOrEmpty(session))
+                                        {
+                                            <h4 style="color:white;">@session.Substring(0, 1).ToUpper()</h4>
+                                        }
+                                    </center>
                                 </div>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-0">John Doe</h6>
-                                <small class="text-muted">Admin</small>
+                                <h6 class="mb-0">@session</h6>
+                                <small class="text-muted">@logAs</small>
                             </div>
                         </div>
                     </a>

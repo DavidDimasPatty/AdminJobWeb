@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace AdminJobWeb.Controllers
 {
@@ -20,6 +21,7 @@ namespace AdminJobWeb.Controllers
         private readonly IMemoryCache _cache;
         private string databaseName;
         private string companyCollectionName;
+        private GeneralFunction1 aid;
 
         public CompanyController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
@@ -29,11 +31,19 @@ namespace AdminJobWeb.Controllers
             this._database = mongoClient.GetDatabase(this.databaseName);
             this.companyCollectionName = configuration["MonggoDbSettings:Collections:companiesCollection"]!;
             this._companyCollection = _database.GetCollection<Company>(this.companyCollectionName);
+            this.aid= new GeneralFunction1();
         }
 
 
         public async Task<ActionResult> Index()
         {
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 List<Company> companies = await _companyCollection.Find(_ => true).ToListAsync();
@@ -41,6 +51,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link = HttpContext.Request.Path;
                 return View(companies);
             }
             catch (Exception ex)
@@ -51,9 +62,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> BlockCompany(ObjectId id)
+        public async Task<ActionResult> BlockCompany(ObjectId id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Company";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -93,9 +112,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> ActivateCompany(ObjectId id)
+        public async Task<ActionResult> ActivateCompany(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Company";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -135,9 +162,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> DeleteCompany(ObjectId id)
+        public async Task<ActionResult> DeleteCompany(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Company";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 

@@ -34,7 +34,7 @@ namespace AdminJobWeb.Controllers
         private string linkSelf;
         private readonly IMemoryCache _cache;
         private TracelogSurveyer _tracelogSurveyer;
-        private GeneralFunction1 generalFunction1;
+        private GeneralFunction1 aid;
         public SurveyerController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
             this._cache = cache;
@@ -54,12 +54,20 @@ namespace AdminJobWeb.Controllers
             emailClient = configuration.GetValue<string>("Email:emailClient")!;
             linkSelf = configuration.GetValue<string>("Link:linkSelf")!;
             _tracelogSurveyer = new TracelogSurveyer();
-            this.generalFunction1 = new GeneralFunction1();
+            this.aid = new GeneralFunction1();
         }
 
         [HttpGet]
         public async Task<ActionResult> Index()
         {
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+
             try
             {
                 _tracelogSurveyer.WriteLog("UserController Index view called");
@@ -70,14 +78,14 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                TempData["link"] = HttpContext.Request.Path.ToString();
+                ViewBag.link = TempData["link"];
                 return View(surveyer);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
-
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -86,17 +94,25 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public IActionResult AddSurveyer()
+        public IActionResult AddSurveyer(string link)
         {
             try
             {
+                string linkTemp = "/Surveyer";
+                if (!aid.checkPrivilegeSession(HttpContext.Session.GetString("username"), linkTemp, link))
+                {
+                    TempData["titlePopUp"] = "Gagal Akses";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Anda Tidak Memiliki Akses!";
+                    return RedirectToAction("Index", "Home");
+                }
+                ViewBag.link = link;
                 return View("_Partials/_ModalCreate");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                //  return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -105,15 +121,23 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateSurveyer(surveyers data)
+        public async Task<ActionResult> CreateSurveyer(surveyers data, string link)
         {
             try
             {
+                string linkTemp = "/Surveyer";
+                if (!aid.checkPrivilegeSession(HttpContext.Session.GetString("username"), linkTemp, link))
+                {
+                    TempData["titlePopUp"] = "Gagal Akses";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Anda Tidak Memiliki Akses!";
+                    return RedirectToAction("Index", "Home");
+                }
+
                 var username = HttpContext.Session.GetString("username");
                 var keyCreateSurveyer = $"{username}_createSurveyer";
                 if (_cache.TryGetValue(keyCreateSurveyer, out _))
                 {
-                    //return Content("<script>alert('Harap tunggu sebentar untuk create surveyer!');window.location.href='/Account/Index';</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Akses";
                     TempData["icon"] = "error";
                     TempData["text"] = "Harap tunggu sebentar untuk create surveyer!";
@@ -145,7 +169,6 @@ namespace AdminJobWeb.Controllers
                 if (admin + surveyer + applicant + company > 0)
                 {
 
-                    // return Content($"<script>alert('Username atau Email Sudah Terdaftar');window.location.href='/Surveyer/Index';</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Create Surveyer";
                     TempData["icon"] = "error";
                     TempData["text"] = "Username atau Email Sudah Terdaftar";
@@ -153,7 +176,7 @@ namespace AdminJobWeb.Controllers
 
                 }
 
-                var key = generalFunction1.GenerateRandomKey();
+                var key = aid.GenerateRandomKey();
                 string subject = $"Pembuatan Akun Surveyer";
                 string usernameEmail = $"<b>Username</b> : {data.username}";
                 string body = @$"<html>
@@ -240,7 +263,6 @@ namespace AdminJobWeb.Controllers
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
                     Size = 1
                 });
-                //return Content($"<script>alert('Success Add Surveyer');window.location.href='/Surveyer/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Create Surveyer";
@@ -248,9 +270,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-               // Debug.WriteLine(ex.Message);
                 _tracelogSurveyer.WriteLog("Error in UserController Index: " + ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Create Surveyer";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -270,11 +290,10 @@ namespace AdminJobWeb.Controllers
 
             if (admin == null)
             {
-                //  return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "User Tidak Ditemukan!";
-                return RedirectToAction("Index","Account");
+                return RedirectToAction("Index", "Account");
             }
 
             if (admin.addTime.AddMinutes(15) < DateTime.UtcNow)
@@ -284,8 +303,6 @@ namespace AdminJobWeb.Controllers
                 TempData["text"] = "Link Expired!";
                 return RedirectToAction("Index", "Account");
             }
-                //return Content("<script>alert('Link Expired!');window.location.href='/Account/Index'</script>", "text/html");
-
             ViewBag.username = username;
             ViewBag.key = key;
             return View("CreateNewPassword");
@@ -298,11 +315,10 @@ namespace AdminJobWeb.Controllers
             {
                 if (password != passwordRet)
                 {
-                    //return Content($"<script>alert('Password Tidak Sama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Create Password";
                     TempData["icon"] = "error";
                     TempData["text"] = "Password Tidak Sama!";
-                    return RedirectToAction("CreateForm", new { username=username,key=key});
+                    return RedirectToAction("CreateForm", new { username = username, key = key });
                 }
                 surveyers surveyer = new surveyers();
 
@@ -315,7 +331,6 @@ namespace AdminJobWeb.Controllers
                 if (surveyer == null)
                 {
                     _tracelogSurveyer.WriteLog($"User : {username}, Failed Login, Reason: User Tidak Ditemukan");
-                    //return Content("<script>alert('User Tidak Ditemukan!');window.location.href='/Account/LogOut'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Create Password";
                     TempData["icon"] = "error";
                     TempData["text"] = "User Tidak Ditemukan!";
@@ -340,23 +355,21 @@ namespace AdminJobWeb.Controllers
 
                 var filter = Builders<surveyers>.Filter.Eq(p => p.username, username);
                 var update = Builders<surveyers>.Update.
-                    Set(p=>p.nama,nama).
+                    Set(p => p.nama, nama).
                     Set(p => p.password, passwordHash).
                     Set(p => p.loginCount, 0).
                     Set(p => p.saltHash, passwordSalt).
                     Set(p => p.passwordExpired, DateTime.UtcNow.AddMonths(3));
                 var result = await _surveyerCollection.UpdateOneAsync(filter, update);
 
-                //return Content("<script>alert('Berhasil Create Surveyer');window.location.href='/Account/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Berhasil Create Password";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Create Surveyer!";
-                return RedirectToAction("Index","Account");
+                return RedirectToAction("Index", "Account");
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/CreateForm?username={username}&key={key}'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Create Password";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -366,12 +379,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ApprovalNewSurveyer(ObjectId id)
+        public async Task<ActionResult> ApprovalNewSurveyer(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/Surveyer";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -389,8 +402,6 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Approval New Surveyer");
-                    //return Content("<script>alert('Gagal Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Approve Surveyer";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -399,7 +410,6 @@ namespace AdminJobWeb.Controllers
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Approval New Surveyer");
-                // return Content("<script>alert('Berhasil Approval New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -408,9 +418,8 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
-               // Debug.WriteLine(e);
+                // Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Approval New Surveyer, Reason : {e.Message}");
-                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Approve Surveyer";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -420,17 +429,18 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> RejectNewSurveyer(ObjectId id)
+        public async Task<ActionResult> RejectNewSurveyer(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/Surveyer";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
                 return RedirectToAction("Index", "Home");
             }
+
             try
             {
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Start Reject New Surveyer");
@@ -443,7 +453,6 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Reject New Surveyer");
-                    // return Content("<script>alert('Gagal Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Reject Surveyer";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -451,7 +460,6 @@ namespace AdminJobWeb.Controllers
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Reject New Surveyer");
-                //return Content("<script>alert('Berhasil Reject New Surveyer!');window.location.href='/User/Index'</script>", "text/html");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -462,7 +470,6 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Reject New Surveyer, Reason : {e.Message}");
-                // return Content($"<script>alert('{e.Message}');window.location.href='/User/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Reject Surveyer";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -472,9 +479,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> BlockSurveyer(ObjectId id)
+        public async Task<ActionResult> BlockSurveyer(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Surveyer";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -486,7 +501,6 @@ namespace AdminJobWeb.Controllers
                 if (result.ModifiedCount == 0)
                 {
                     _tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //  return Content("<script>alert('Gagal Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Block Surveyer";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -494,7 +508,6 @@ namespace AdminJobWeb.Controllers
                 }
 
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //return Content("<script>alert('Berhasil Block Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -505,7 +518,6 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(e);
                 _tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Surveyer/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Block Surveyer";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -515,9 +527,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateSurveyer(ObjectId id)
+        public async Task<ActionResult> ActivateSurveyer(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Surveyer";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<surveyers>.Filter.Eq(p => p._id, id);
@@ -557,9 +577,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteSurveyer(ObjectId id)
+        public async Task<ActionResult> DeleteSurveyer(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Surveyer";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<surveyers>.Filter.Eq(p => p._id, id);

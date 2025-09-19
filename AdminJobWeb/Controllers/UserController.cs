@@ -65,7 +65,6 @@ namespace AdminJobWeb.Controllers
         {
             if (HttpContext.Session.GetInt32("role") != 1)
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -95,7 +94,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-
+                ViewBag.link = HttpContext.Request.Path;
                 return View(admins);
             }
             catch (Exception ex)
@@ -113,26 +112,27 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public IActionResult SendFormAdmin()
         {
-            string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
-            {
-                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
-                TempData["titlePopUp"] = "Gagal Akses";
-                TempData["icon"] = "error";
-                TempData["text"] = "Anda Tidak Memiliki Akses!";
-                return RedirectToAction("Index", "Home");
-            }
+            //string adminLogin = HttpContext.Session.GetString("username")!;
+            //string linkTemp = "/User";
+            //if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
+            //{
+            //    TempData["titlePopUp"] = "Gagal Akses";
+            //    TempData["icon"] = "error";
+            //    TempData["text"] = "Anda Tidak Memiliki Akses!";
+            //    return RedirectToAction("Index", "Home");
+            //}
+            //ViewBag.link = link;
 
             return PartialView("_Partials/_ModalCreate");
         }
 
         [HttpPost]
-        public async Task<ActionResult> SendFormAdmin(admin objData)
+        public async Task<ActionResult> SendFormAdmin(admin objData,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -427,16 +427,16 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ApprovalNewAdmin(string id)
+        public async Task<ActionResult> ApprovalNewAdmin(string id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
-                return RedirectToAction("Index","Home");
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -479,12 +479,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> RejectNewAdmin(string id)
+        public async Task<ActionResult> RejectNewAdmin(string id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -531,12 +531,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> BlockAdmin(string id)
+        public async Task<ActionResult> BlockAdmin(string id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -583,12 +583,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateAdmin(string id)
+        public async Task<ActionResult> ActivateAdmin(string id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                //  return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";
@@ -635,12 +635,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteAdmin(string id)
+        public async Task<ActionResult> DeleteAdmin(string id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string linkTemp = "/User";
+            if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
-                //    return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = "Anda Tidak Memiliki Akses!";

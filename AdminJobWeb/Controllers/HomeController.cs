@@ -15,6 +15,13 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
+        if (string.IsNullOrEmpty(HttpContext.Session.GetString("username")))
+        {
+            TempData["titlePopUp"] = "Gagal Akses";
+            TempData["icon"] = "error";
+            TempData["text"] = "Anda Tidak Memiliki Akses!";
+            return RedirectToAction("LogOut", "Account");
+        }
         return View();
     }
 

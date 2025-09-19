@@ -19,10 +19,10 @@
     ViewData["navbarDetached"] = (ViewData["navbarDetached"] ?? "navbar-detached");
 
     @*Content classes *@
+
     ViewData["container"] = (ViewData["container"] ?? "container-xxl");
 
-
-
+    var idle = 1;
     ViewData["containerNav"] = (ViewData["containerNav"] ?? "container-xxl");
 }
 
@@ -50,20 +50,6 @@
     <div class='layout-container'>
 
         @if (isMenu)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         {
             @await Html.PartialAsync("Sections/Menu/_VerticalMenu")
@@ -123,6 +109,7 @@
     <div class="drag-target"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js" integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     @if (TempData["icon"] != null)
@@ -138,5 +125,29 @@
         TempData.Remove("text");
         TempData.Remove("icon");
 
+    }
+
+    var checkIdle = 0;
+    $(document).mousemove(function () {
+        checkIdle = 0;
+    });
+    setInterval(checkIdleTimeOut, 60000);
+    console.log(checkIdle);
+    function checkIdleTimeOut() {
+        checkIdle = checkIdle + 1;
+        if (checkIdle == "@idle") {
+            //alert("Idle " + @idle+" Menit, anda akan diarahkan ke halaman log in!");
+            Swal.fire({
+                title: 'Sesi Habis',
+                text: "Idle " + @idle+" Menit, anda akan diarahkan ke halaman log in!",
+                icon: 'error',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                willClose: () => {
+                    window.location.href = '/Account/LogOut';
+                }
+            });
+        }
     }
 </script>

@@ -253,7 +253,7 @@ namespace AdminJobWeb.Controllers
                         TempData["titlePopUp"] = "Gagal Login";
                         TempData["icon"] = "error";
                         TempData["text"] = "User Tidak Ditemukan!";
-                        return RedirectToAction("Index");
+                        return RedirectToAction("LogOut","Account");
 
                     }
 
@@ -385,7 +385,7 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Gagal Login";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
-                return RedirectToAction("Index");
+                return RedirectToAction("LogOut", "Account");
 
             }
         }
@@ -629,6 +629,7 @@ namespace AdminJobWeb.Controllers
                     }
 
 
+                    if (admin.passwordLama!=null) { 
                     using (var hmac = new HMACSHA512(admin.saltHashLama))
                     {
                         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
@@ -651,6 +652,7 @@ namespace AdminJobWeb.Controllers
                         TempData["icon"] = "error";
                         TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
                         return RedirectToAction("CreateResetPassword", new { username = username, key = key });
+                    }
                     }
 
                     byte[] passwordSalt = [];
@@ -707,29 +709,31 @@ namespace AdminJobWeb.Controllers
                         return RedirectToAction("CreateResetPassword", new { username = username, key = key });
                     }
 
-
-                    using (var hmac = new HMACSHA512(surveyer.saltHashLama))
+                    if (surveyer.passwordLama != null)
                     {
-                        var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-
-                        for (int i = 0; i < computedHash.Length; i++)
+                        using (var hmac = new HMACSHA512(surveyer.saltHashLama))
                         {
+                            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
-                            if (computedHash[i] != surveyer.passwordLama[i])
+                            for (int i = 0; i < computedHash.Length; i++)
                             {
-                                checkPassOld = false;
-                                break;
+
+                                if (computedHash[i] != surveyer.passwordLama[i])
+                                {
+                                    checkPassOld = false;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if (checkPassOld == true)
-                    {
-                        // return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
-                        TempData["titlePopUp"] = "Gagal Reset Password";
-                        TempData["icon"] = "error";
-                        TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
-                        return RedirectToAction("CreateResetPassword", new { username = username, key = key });
+                        if (checkPassOld == true)
+                        {
+                            // return Content($"<script>alert('Password Tidak Boleh Sama dengan Password Lama!');window.location.href='/Account/CreateResetPassword?username={username}&key={key}'</script>", "text/html");
+                            TempData["titlePopUp"] = "Gagal Reset Password";
+                            TempData["icon"] = "error";
+                            TempData["text"] = "Password Tidak Boleh Sama dengan Password Lama!";
+                            return RedirectToAction("CreateResetPassword", new { username = username, key = key });
+                        }
                     }
 
                     byte[] passwordSalt = [];
@@ -758,6 +762,7 @@ namespace AdminJobWeb.Controllers
                     var result = await _surveyerCollection.UpdateOneAsync(filter, update);
                 }
                 // return Content("<script>alert('Berhasil Reset Password!');window.location.href='/Account/Index'</script>", "text/html");
+
                 string script = @"
                     <html>
                         <head>
@@ -766,15 +771,15 @@ namespace AdminJobWeb.Controllers
                         <body>
                            <script>
                                 Swal.fire({
-                                    title: 'Reset Berhasil',
+                                     title: 'Reset Berhasil',
                                     text: 'Success Reset Password!',
                                     icon: 'success',
                                     showConfirmButton: false,
                                     timer: 2000,
                                     timerProgressBar: true,
                                     willClose: () => {
-                                        window.location.href = '/Account/Index';
-                                    Account
+                                        window.location.href = '/Home/Index';
+                                    }
                                 });
                             </script>
                         </body>

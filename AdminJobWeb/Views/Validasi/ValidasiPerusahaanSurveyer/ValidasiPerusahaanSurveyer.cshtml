@@ -28,19 +28,19 @@
                         {
                             <tr>
                                 <td>@i</td>
-                                <td>@item.company[0].nama</td>
-                                @if (item.surveyer.Count == 0)
+                                <td>@(item?.company != null && item.company.Count > 0 ? item?.company[0]?.nama : "No Company Name")</td>
+                                @if (item?.surveyer != null && item.surveyer.Count > 0)
                                 {
-                                    <td class="text-danger">Belum Memilih Surveyer</td>
+                                    <td>@item?.surveyer[0]?.nama</td>
                                 }
                                 else
                                 {
-                                    <td>@item.surveyer[0].nama</td>
+                                    <td class="text-danger">Belum Ada Surveyer</td>
                                 }
-                                <td>@item.dateSurvey</td>
-                                <td>@item.statusDate</td>
-                                <td>@item.statusSurvey</td>
-                                @if (item.statusSurvey == "Pending")
+                                <td>@item?.dateSurvey</td>
+                                <td>@item?.statusDate</td>
+                                <td>@item?.statusSurvey</td>
+                                @if (item?.statusSurvey == "Pending")
                                 {
                                     if (ViewBag.loginAs == "Admin")
                                     {
@@ -53,7 +53,7 @@
                                         else
                                         {
                                             <td>
-                                                <button id="addSurveyer" class="btn btn-primary btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                                <button id="addSurveyer" class="btn btn-primary btn-sm addSurveyer" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@(item.company.Count > 0 ? item?.company[0]?.nama : " No Company Name")">
                                                     <i class="bx bx-plus me-1"></i> Add Surveyer
                                                 </button>
                                             </td>
@@ -73,6 +73,7 @@
                                                 <form asp-action="ProcessSurveyer" asp-controller="Validasi" method="post" class="d-inline">
                                                     <input type="hidden" name="id" value="@item._id" />
                                                     <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
+                                                    <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                                     <button type="submit" class="btn btn-info btn-sm">
                                                         <i class="bx bx-check me-1"></i> Process
                                                     </button>
@@ -81,7 +82,7 @@
                                         }
                                     }
                                 }
-                                else if (item.statusSurvey == "Process")
+                                else if (item?.statusSurvey == "Process")
                                 {
 
                                     if (ViewBag.loginAs == "Survey")
@@ -91,11 +92,12 @@
                                                 <input type="hidden" name="id" value="@item._id" />
                                                 <input type="hidden" name="idPerusahaan" value="@item.idPerusahaan" />
                                                 <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
+                                                <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bx bx-check me-1"></i> Approve
                                                 </button>
                                             </form>
-                                            <button id="rejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama" data-idSurveyer="@item.idSurveyer">
+                                            <button id="rejectSurveyer" class="btn btn-danger btn-sm rejectSurveyer" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama" data-idSurveyer="@item.idSurveyer">
                                                 <i class="bx bx-min me-1"></i> Reject Surveyer
                                             </button>
                                         </td>
@@ -107,15 +109,15 @@
                                         </td>
                                     }
                                 }
-                                else if (item.statusSurvey == "Reject")
+                                else if (item?.statusSurvey == "Reject")
                                 {
                                     <td>
-                                        <button id="reasonRejectSurveyer" class="btn btn-danger btn-sm" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama">
+                                        <button id="reasonRejectSurveyer" class="btn btn-danger btn-sm reasonRejectSurveyer" data-id="@item._id" data-idPerusahaan="@item.idPerusahaan" data-namaPerusahaan="@item.company[0].nama" data-link="@ViewBag.link">
                                             <i class="bx bx-min me-1"></i> Gagal Validasi
                                         </button>
                                     </td>
                                 }
-                                else if (item.statusSurvey == "Accept")
+                                else if (item?.statusSurvey == "Accept")
                                 {
                                     <td>
                                         <b class="text-success">Tervalidasi</b>
@@ -172,7 +174,7 @@
             });
 
 
-            $("#addSurveyer").on("click", function (e) {
+            $(".addSurveyer").on("click", function (e) {
                 e.preventDefault();
 
                 var url = "/Validasi/AddSurveyer";
@@ -184,6 +186,7 @@
                         id: $(this).attr("data-id"),
                         idPerusahaan: $(this).attr("data-idPerusahaan"),
                         namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                        link:"@ViewBag.link"
                     },
                     success: function (data) {
                         $("#exampleModal .modal-dialog").html(data);
@@ -196,7 +199,7 @@
                 });
             });
 
-            $("#rejectSurveyer").on("click", function (e) {
+            $(".rejectSurveyer").on("click", function (e) {
                 e.preventDefault();
 
                 var url = "/Validasi/RejectSurveyer";
@@ -208,7 +211,8 @@
                         id: $(this).attr("data-id"),
                         idPerusahaan: $(this).attr("data-idPerusahaan"),
                         namaPerusahaan: $(this).attr("data-namaPerusahaan"),
-                        idSurveyer: $(this).attr("data-idSurveyer")
+                        idSurveyer: $(this).attr("data-idSurveyer"),
+                        link: "@ViewBag.link"
                     },
                     success: function (data) {
                         $("#exampleModal .modal-dialog").html(data);
@@ -222,7 +226,7 @@
             });
 
 
-            $("#reasonRejectSurveyer").on("click", function (e) {
+            $(".reasonRejectSurveyer").on("click", function (e) {
                 e.preventDefault();
 
                 var url = "/Validasi/DetailRejectSurveyer";
@@ -234,6 +238,7 @@
                         id: $(this).attr("data-id"),
                         idPerusahaan: $(this).attr("data-idPerusahaan"),
                         namaPerusahaan: $(this).attr("data-namaPerusahaan"),
+                        link: "@ViewBag.link"
                     },
                     success: function (data) {
                         $("#exampleModal .modal-dialog").html(data);

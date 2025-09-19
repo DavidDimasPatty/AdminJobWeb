@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 
 namespace AdminJobWeb.AidFunction
 {
@@ -25,6 +26,17 @@ namespace AdminJobWeb.AidFunction
                              .Replace("=", "");
 
             return token;
+        }
+
+        public bool checkPrivilegeSession(string username,string privilege,string VBLink)
+        {
+            if (string.IsNullOrEmpty(username))
+                return false;
+
+            if (!privilege.Equals(VBLink))
+                return false;
+
+            return true;
         }
     }
 }

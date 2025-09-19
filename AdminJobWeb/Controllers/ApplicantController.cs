@@ -31,6 +31,7 @@ namespace AdminJobWeb.Controllers
         private string skillCollectionName;
         private string certificateCollectionName;
         private string organizationCollectionName;
+        private GeneralFunction1 aid;
 
         public ApplicantController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
@@ -55,6 +56,8 @@ namespace AdminJobWeb.Controllers
 
             this.organizationCollectionName = configuration["MonggoDbSettings:Collections:organizationCollection"]!;
             this._organizationCollection = _database.GetCollection<Organization>(this.organizationCollectionName);
+
+            this.aid = new GeneralFunction1();
         }
 
         //Aplicant
@@ -62,6 +65,13 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Index()
         {
+            if (HttpContext.Session.GetInt32("role") != 1)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 List<Applicant?> applicants = await _applicantCollection.Find(_ => true).ToListAsync();
@@ -69,6 +79,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link =HttpContext.Request.Path;
                 return View(applicants);
             }
             catch (Exception ex)
@@ -80,9 +91,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> BlockApplicant(ObjectId id)
+        public async Task<ActionResult> BlockApplicant(ObjectId id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -123,9 +142,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateApplicant(ObjectId id)
+        public async Task<ActionResult> ActivateApplicant(ObjectId id,string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -165,9 +192,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteApplicant(ObjectId id)
+        public async Task<ActionResult> DeleteApplicant(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -209,6 +244,13 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Experience()
         {
+            if (HttpContext.Session.GetInt32("role") != 2)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 List<Experience?> experiences = await _experienceCollection.Find(_ => true).ToListAsync();
@@ -216,6 +258,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link = HttpContext.Request.Path;
                 return View("Experience/Experience", experiences);
             }
             catch (Exception ex)
@@ -226,8 +269,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddExperience()
+        public async Task<ActionResult> AddExperience(string link)
         {
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(HttpContext.Session.GetString("username"), linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.username = HttpContext.Session.GetInt32("username");
@@ -242,8 +294,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> EditExperience(ObjectId id)
+        public async Task<ActionResult> EditExperience(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 Experience experience = await _experienceCollection.Find(v => v._id == id).FirstOrDefaultAsync();
@@ -262,8 +324,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddExperience(Experience data)
+        public async Task<ActionResult> AddExperience(Experience data,string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var username = HttpContext.Session.GetString("username");
@@ -313,8 +384,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditExperience(Experience data)
+        public async Task<ActionResult> EditExperience(Experience data,string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var checkEdu = await _experienceCollection
@@ -357,10 +437,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteExperience(ObjectId id)
+        public async Task<ActionResult> DeleteExperience(ObjectId id, string link)
         {
-
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, id);
@@ -390,9 +477,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> InactiveExperience(ObjectId id)
+        public async Task<ActionResult> InactiveExperience(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -424,9 +519,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateExperience(ObjectId id)
+        public async Task<ActionResult> ActivateExperience(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Experience";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -461,6 +564,14 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Education()
         {
+            if (HttpContext.Session.GetInt32("role") != 2)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+
             try
             {
                 List<Education?> educations = await _educationCollection.Find(_ => true).ToListAsync();
@@ -468,6 +579,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link=HttpContext.Request.Path;
                 return View("Education/Education", educations);
             }
             catch (Exception ex)
@@ -478,8 +590,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddEducation()
+        public async Task<ActionResult> AddEducation(string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.username = HttpContext.Session.GetInt32("username");
@@ -494,8 +616,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> EditEducation(ObjectId id)
+        public async Task<ActionResult> EditEducation(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 Education education = await _educationCollection.Find(v => v._id == id).FirstOrDefaultAsync();
@@ -514,8 +646,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddEducation(Education data)
+        public async Task<ActionResult> AddEducation(Education data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var username = HttpContext.Session.GetString("username");
@@ -563,8 +704,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditEducation(Education data)
+        public async Task<ActionResult> EditEducation(Education data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var checkEdu = await _educationCollection
@@ -605,10 +755,18 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteEducation(ObjectId id)
+        public async Task<ActionResult> DeleteEducation(ObjectId id, string link)
         {
 
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<Education>.Filter.Eq(p => p._id, id);
@@ -643,9 +801,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> InactiveEducation(ObjectId id)
+        public async Task<ActionResult> InactiveEducation(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -684,9 +850,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> ActivateEducation(ObjectId id)
+        public async Task<ActionResult> ActivateEducation(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Education";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -729,6 +903,13 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Skill()
         {
+            if (HttpContext.Session.GetInt32("role") != 2)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 List<Skill?> skills = await _skillCollection.Find(_ => true).ToListAsync();
@@ -736,6 +917,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link = HttpContext.Request.Path;
                 return View("Skill/Skill", skills);
             }
             catch (Exception ex)
@@ -746,8 +928,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddSkill()
+        public async Task<ActionResult> AddSkill(string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.username = HttpContext.Session.GetInt32("username");
@@ -762,8 +954,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> EditSkill(ObjectId id)
+        public async Task<ActionResult> EditSkill(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 Skill skill = await _skillCollection.Find(v => v._id == id).FirstOrDefaultAsync();
@@ -782,8 +984,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddSkill(Skill data)
+        public async Task<ActionResult> AddSkill(Skill data , string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var username = HttpContext.Session.GetString("username");
@@ -830,8 +1041,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditSkill(Skill data)
+        public async Task<ActionResult> EditSkill(Skill data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var checkSkill = await _skillCollection
@@ -872,10 +1092,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteSkill(ObjectId id)
+        public async Task<ActionResult> DeleteSkill(ObjectId id, string link)
         {
-
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, id);
@@ -909,9 +1136,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> InactiveSkill(ObjectId id)
+        public async Task<ActionResult> InactiveSkill(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -951,9 +1186,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateSkill(ObjectId id)
+        public async Task<ActionResult> ActivateSkill(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Skill";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -995,6 +1238,14 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Organization()
         {
+            if (HttpContext.Session.GetInt32("role") != 2)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+
             try
             {
                 List<Organization?> organizations = await _organizationCollection.Find(_ => true).ToListAsync();
@@ -1002,6 +1253,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link = HttpContext.Request.Path;
                 return View("Organization/Organization", organizations);
             }
             catch (Exception ex)
@@ -1012,8 +1264,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddOrganization()
+        public async Task<ActionResult> AddOrganization(string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.username = HttpContext.Session.GetInt32("username");
@@ -1028,8 +1290,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> EditOrganization(ObjectId id)
+        public async Task<ActionResult> EditOrganization(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 Organization organization = await _organizationCollection.Find(v => v._id == id).FirstOrDefaultAsync();
@@ -1048,8 +1320,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddOrganization(Organization data)
+        public async Task<ActionResult> AddOrganization(Organization data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var username = HttpContext.Session.GetString("username");
@@ -1099,8 +1380,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditOrganization(Organization data)
+        public async Task<ActionResult> EditOrganization(Organization data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var checkOrganization = await _organizationCollection
@@ -1143,10 +1433,18 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteOrganization(ObjectId id)
+        public async Task<ActionResult> DeleteOrganization(ObjectId id, string link)
         {
 
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, id);
@@ -1181,9 +1479,17 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> InactiveOrganization(ObjectId id)
+        public async Task<ActionResult> InactiveOrganization(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -1225,9 +1531,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateOrganization(ObjectId id)
+        public async Task<ActionResult> ActivateOrganization(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Organization";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -1272,6 +1586,14 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Certificate()
         {
+            if (HttpContext.Session.GetInt32("role") != 2)
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+
             try
             {
                 List<Certificate?> certificates = await _certificateCollection.Find(_ => true).ToListAsync();
@@ -1279,6 +1601,7 @@ namespace AdminJobWeb.Controllers
 
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                ViewBag.link = HttpContext.Request.Path;
                 return View("Certificate/Certificate", certificates);
             }
             catch (Exception ex)
@@ -1289,8 +1612,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddCertificate()
+        public async Task<ActionResult> AddCertificate(string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.username = HttpContext.Session.GetInt32("username");
@@ -1305,8 +1638,18 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> EditCertificate(ObjectId id)
+        public async Task<ActionResult> EditCertificate(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 Certificate certificate = await _certificateCollection.Find(v => v._id == id).FirstOrDefaultAsync();
@@ -1325,8 +1668,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddCertificate(Certificate data)
+        public async Task<ActionResult> AddCertificate(Certificate data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var username = HttpContext.Session.GetString("username");
@@ -1375,8 +1727,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditCertificate(Certificate data)
+        public async Task<ActionResult> EditCertificate(Certificate data, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var checkCertificate = await _certificateCollection
@@ -1418,10 +1779,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> DeleteCertificate(ObjectId id)
+        public async Task<ActionResult> DeleteCertificate(ObjectId id, string link)
         {
-
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, id);
@@ -1456,9 +1824,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> InactiveCertificate(ObjectId id)
+        public async Task<ActionResult> InactiveCertificate(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 
@@ -1499,9 +1875,17 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateCertificate(ObjectId id)
+        public async Task<ActionResult> ActivateCertificate(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Applicant/Certificate";
+            if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
 

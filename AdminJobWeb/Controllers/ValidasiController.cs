@@ -64,6 +64,14 @@ namespace AdminJobWeb.Controllers
         {
             try
             {
+                if (string.IsNullOrEmpty(HttpContext.Session.GetString("username")))
+                {
+                    TempData["titlePopUp"] = "Gagal Akses";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Anda Tidak Memiliki Akses!";
+                    return RedirectToAction("Index", "Home");
+                }
+
                 _tracelogValidasi.WriteLog("UserController Index view called");
                 string loginAs = HttpContext.Session.GetString("loginAs")!;
                 List<PerusahaanSurvey>? docs;
@@ -83,24 +91,41 @@ namespace AdminJobWeb.Controllers
                     docs = await _perusahaanSurveyCollection.Aggregate()
                       .Lookup("companies", "idPerusahaan", "_id", "company")
                       .Lookup("Surveyers", "idSurveyer", "_id", "surveyer")
+                      .Match(Builders<BsonDocument>.Filter.Ne("company", new BsonArray()))
+                       //.Match(Builders<BsonDocument>.Filter.Ne("surveyer", new BsonArray()))
                       .As<PerusahaanSurvey>()
                       .ToListAsync();
                 }
 
                 ViewBag.loginAs = HttpContext.Session.GetString("loginAs");
+                ViewBag.link = HttpContext.Request.Path;
                 return View("ValidasiPerusahaanSurveyer/ValidasiPerusahaanSurveyer", docs);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index", "Home");
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult> AddSurveyer(ObjectId id, ObjectId idPerusahaan, string namaPerusahaan)
+        public async Task<ActionResult> AddSurveyer(ObjectId id, ObjectId idPerusahaan, string namaPerusahaan, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.id = id;
@@ -113,13 +138,26 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult> AddSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
+        public async Task<ActionResult> AddSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 surveyers dataSurveyer = await _surveyerCollection
@@ -189,37 +227,71 @@ namespace AdminJobWeb.Controllers
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Pending").Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Berhasil Add Surveyer');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('Berhasil Add Surveyer');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Add Surveyer";
+                TempData["icon"] = "success";
+                TempData["text"] = "Add Surveyer Berhasil";
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Add Surveyer";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult> ProcessSurveyer(ObjectId id, ObjectId idSurveyer)
+        public async Task<ActionResult> ProcessSurveyer(ObjectId id, ObjectId idSurveyer, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
                 var update = Builders<PerusahaanSurvey>.Update.Set(p => p.idSurveyer, idSurveyer).Set(p => p.statusSurvey, "Process").Set(p => p.dateSurvey, DateTime.UtcNow).Set(p => p.updTime, DateTime.UtcNow);
                 await _perusahaanSurveyCollection.UpdateOneAsync(filter, update);
-                return Content($"<script>alert('Survey Dilakukan!');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('Survey Dilakukan!');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Survey Perusahaan";
+                TempData["icon"] = "success";
+                TempData["text"] = "Survey Dilakukan";
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Proses Survey";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult> ApprovalSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
+        public async Task<ActionResult> ApprovalSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 List<admin> data = await _adminCollection
@@ -312,20 +384,38 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _perusahaanAdminCollection.InsertOneAsync(perusahaanAdmin);
-                return Content($"<script>alert('Berhasil Accept Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('Berhasil Accept Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Approve Perusahaan";
+                TempData["icon"] = "success";
+                TempData["text"] = "Approve Perusahaan Berhasil";
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Approve Perusahaan";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
 
         [HttpGet]
-        public async Task<ActionResult> RejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
+        public async Task<ActionResult> RejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
+            ViewBag.link = link;
             try
             {
                 ViewBag.id = id;
@@ -337,13 +427,26 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult> RejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string alasanReject)
+        public async Task<ActionResult> RejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string alasanReject, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 var filter = Builders<PerusahaanSurvey>.Filter.Eq(p => p._id, id);
@@ -421,19 +524,36 @@ namespace AdminJobWeb.Controllers
                     smtp.Send(message);
                 }
 
-                return Content($"<script>alert('Berhasil Reject Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                // return Content($"<script>alert('Berhasil Reject Perusahaan');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Reject Perusahaan";
+                TempData["icon"] = "success";
+                TempData["text"] = "Reject Perusahaan Berhasil";
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reject Perusahaan";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult> DetailRejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer)
+        public async Task<ActionResult> DetailRejectSurveyer(ObjectId id, ObjectId idPerusahaan, ObjectId idSurveyer, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanSurveyer";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             try
             {
                 ViewBag.id = id;
@@ -454,7 +574,11 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in UserController Index: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanSurveyer';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanSurveyer");
             }
         }
 
@@ -462,10 +586,21 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> ValidasiPerusahaanAdmin()
         {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("username")))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             string loginAs = HttpContext.Session.GetString("loginAs")!;
             if (loginAs != "Admin")
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
 
             try
@@ -492,7 +627,7 @@ namespace AdminJobWeb.Controllers
 
                 // Filter hanya yang sudah di Approve oleh Surveyer
                 docs = docs.Where(x => x.perusahaanSurvey.statusSurvey == "Accept").ToList();
-
+                ViewBag.link = HttpContext.Request.Path;
                 ViewBag.loginAs = HttpContext.Session.GetString("loginAs");
                 return View("ValidasiPerusahaanAdmin/ValidasiPerusahaanAdmin", docs);
             }
@@ -500,14 +635,27 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in ValidasiController ValidasiPerusahaanAdmin: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ApprovalAdmin(ObjectId id, ObjectId idPerusahaan)
+        public async Task<ActionResult> ApprovalAdmin(ObjectId id, ObjectId idPerusahaan, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanAdmin";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             string loginAs = HttpContext.Session.GetString("loginAs")!;
             if (loginAs != "Admin")
             {
@@ -592,23 +740,44 @@ namespace AdminJobWeb.Controllers
                 await _companyCollection.UpdateOneAsync(filterCompany, updateCompany);
 
                 _tracelogValidasi.WriteLog("ValidasiController ApprovalAdmin completed successfully");
-                return Content($"<script>alert('Approval Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                // return Content($"<script>alert('Approval Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Approve Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Approve Perusahaan Berhasil";
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in ValidasiController ApprovalAdmin: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Approve Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult> RejectAdmin(ObjectId id, ObjectId idPerusahaan)
+        public async Task<ActionResult> RejectAdmin(ObjectId id, ObjectId idPerusahaan, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanAdmin";
             string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             if (loginAs != "Admin")
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -622,18 +791,35 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in ValidasiController RejectAdmin: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                // return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> RejectAdmin(PerusahaanAdmin objData, ObjectId idPerusahaan)
+        public async Task<ActionResult> RejectAdmin(PerusahaanAdmin objData, ObjectId idPerusahaan, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanAdmin";
             string loginAs = HttpContext.Session.GetString("loginAs")!;
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             if (loginAs != "Admin")
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                // return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
             try
             {
@@ -713,23 +899,45 @@ namespace AdminJobWeb.Controllers
                 _tracelogValidasi.WriteLog("Rejection email sent successfully");
 
                 _tracelogValidasi.WriteLog("ValidasiController RejectAdmin completed successfully");
-                return Content($"<script>alert('Reject Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                //return Content($"<script>alert('Reject Perusahaan Berhasil');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Berhasil Reject Admin";
+                TempData["icon"] = "success";
+                TempData["text"] = "Reject Perusahaan Berhasil";
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in ValidasiController RejectAdmin: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Reject Admin";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("ValidasiPerusahaanAdmin");
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult> DetailRejectAdmin(ObjectId id)
+        public async Task<ActionResult> DetailRejectAdmin(ObjectId id, string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string linkTemp = "/Validasi/ValidasiPerusahaanAdmin";
+            if (!generalFunction1.checkPrivilegeSession(adminLogin, linkTemp, link))
+            {
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
+            }
             string loginAs = HttpContext.Session.GetString("loginAs")!;
             if (loginAs != "Admin")
             {
-                return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                //return Content("<script>alert('Anda Tidak Memiliki Akses!');window.location.href='/Home/Index'</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = "Anda Tidak Memiliki Akses!";
+                return RedirectToAction("Index", "Home");
             }
 
             try
@@ -746,7 +954,11 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogValidasi.WriteLog("Error in ValidasiController DetailRejectAdmin: " + ex.Message);
-                return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                //return Content($"<script>alert('{ex.Message}');window.location.href='/Validasi/ValidasiPerusahaanAdmin';</script>", "text/html");
+                TempData["titlePopUp"] = "Gagal Akses";
+                TempData["icon"] = "error";
+                TempData["text"] = ex.Message;
+                return RedirectToAction("Index", "Home");
             }
         }
     }

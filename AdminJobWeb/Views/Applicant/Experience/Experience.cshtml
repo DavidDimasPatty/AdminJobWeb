@@ -43,6 +43,7 @@
                                     {
                                             <form asp-action="InactiveExperience" asp-controller="Applicant" method="post" class="d-inline InactiveExperience">
                                                 <input type="hidden" name="id" value="@item._id" />
+                                            <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                                 <button type="submit" class="btn btn-warning btn-sm">
                                                     <i class="bx bx-block me-1"></i> Inactive
                                                 </button>
@@ -52,6 +53,7 @@
                                     {
                                             <form asp-action="ActivateExperience" asp-controller="Applicant" method="post" class="d-inline ActivateExperience">
                                                 <input type="hidden" name="id" value="@item._id" />
+                                            <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bx bx-check me-1"></i> Activate
                                                 </button>
@@ -63,6 +65,7 @@
 
                                         <form asp-action="DeleteExperience" asp-controller="Applicant" method="post" class="d-inline deleteExperience">
                                             <input type="hidden" name="id" value="@item._id" />
+                                        <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bx bx-stop-circle me-1"></i> Delete
                                             </button>
@@ -141,6 +144,9 @@
                     url: url,
                     type: "GET",
                     cache: false,
+                    data: {
+                        link: "@ViewBag.link"
+                    },
                     success: function (data) {
                         $("#exampleModal .modal-dialog").html(data);
                         $("#exampleModal").modal('show');
@@ -160,7 +166,8 @@
                     type: "GET",
                     cache: false,
                     data: {
-                        id: $(this).attr("data-itemid")
+                        id: $(this).attr("data-itemid"),
+                        link: "@ViewBag.link"
                     },
                     success: function (data) {
                         $("#exampleModal .modal-dialog").html(data);
