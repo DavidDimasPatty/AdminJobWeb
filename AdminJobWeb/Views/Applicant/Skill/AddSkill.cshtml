@@ -14,7 +14,7 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="nama" class="form-label">Nama</label>
-                    <input type="nama" asp-for="nama" class="form-control" required>
+                    <input type="nama" id="nama" asp-for="nama" class="form-control" required>
                 </div>
             </div>
         </div>
@@ -32,8 +32,30 @@
 </style>
 <script>
     $(document).ready(function () {
+        $("#nama").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]$/;
+            if (!re.test(char)) {
+                e.preventDefault();
+            }
+        });
+
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,50}$/;
+            const val1 = $('#nama').val();
+
+            if (!re.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Nama Tidak Valid."
+                });
+                return false;
+            }
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",

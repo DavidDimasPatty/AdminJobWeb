@@ -15,13 +15,13 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="nama" class="form-label">Nama</label>
-                    <input type="text" asp-for="nama" class="form-control" value="@Model.nama" required>
+                    <input type="text" id="nama" asp-for="nama" class="form-control" value="@Model.nama" required>
                 </div>
             </div>
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="publisher" class="form-label">Publisher</label>
-                    <textarea asp-for="publisher" class="form-control" required>@Model.publisher</textarea>
+                    <textarea id="publisher" asp-for="publisher" class="form-control" required>@Model.publisher</textarea>
                 </div>
             </div>
         </div>
@@ -39,8 +39,41 @@
 </style>
 <script>
     $(document).ready(function () {
+         $("#nama, #publisher").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]$/;
+            if (!re.test(char)) {
+                e.preventDefault(); 
+            }
+        });
+
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,50}$/;
+            const val1 = $('#nama').val();
+            const val2 = $('#publisher').val();
+
+            if (!re.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Nama Tidak Valid."
+                });
+                return false;
+            }
+
+            if (!re.test(val2)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Publisher Tidak Valid."
+                });
+                return false;
+            }
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",

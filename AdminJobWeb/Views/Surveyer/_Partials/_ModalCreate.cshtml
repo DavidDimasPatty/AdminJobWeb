@@ -14,13 +14,13 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="email" class="form-label">Email</label>
-                    <input type="email" asp-for="email" class="form-control" placeholder="xxxx&#64;xxx.xx">
+                    <input type="email" id="email" asp-for="email" class="form-control" placeholder="xxxx&#64;xxx.xx" required>
                 </div>
             </div>
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="username" class="form-label">Username</label>
-                    <input type="text" asp-for="username" class="form-control" placeholder="Enter Username">
+                    <input type="text" id="username" asp-for="username" class="form-control" placeholder="Enter Username" required>
                 </div>
             </div>
         </div>
@@ -39,8 +39,49 @@
 </style>
 <script>
     $(document).ready(function () {
+         $("#email").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9@@._+-]$/;
+            if (!re.test(char)) {
+                e.preventDefault();
+            }
+        });
+
+        $("#username").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9]$/;
+            if (!re.test(char)) {
+                e.preventDefault();
+            }
+        });
+
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+            const re1= /^[A-Za-z0-9]+$/;
+            const re2 = /^[A-Za-z0-9._%+-]+@@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+            const val1 = $('#username').val();
+            const val2 = $('#email').val();
+
+            if (!re1.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Nama Tidak Valid."
+                });
+                return false;
+            }
+
+            if (!re2.test(val2)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input email Tidak Valid."
+                });
+                return false;
+            }
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",

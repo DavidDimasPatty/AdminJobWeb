@@ -14,13 +14,13 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="nama" class="form-label">Nama</label>
-                    <input type="text" asp-for="nama" class="form-control" required>
+                    <input type="text" id="nama" asp-for="nama" class="form-control" required>
                 </div>
             </div>
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="lokasi" class="form-label">Lokasi</label>
-                    <textarea asp-for="lokasi" class="form-control" required></textarea>
+                    <textarea asp-for="lokasi" id="lokasi" class="form-control" required></textarea>
                 </div>
             </div>
         </div>
@@ -38,8 +38,42 @@
 </style>
 <script>
     $(document).ready(function () {
+        $("#nama, #lokasi").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]$/;
+            if (!re.test(char)) {
+                e.preventDefault();
+            }
+        });
+
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,50}$/;
+            const val1 = $('#nama').val();
+            const val2 = $('#lokasi').val();
+
+            if (!re.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Nama Tidak Valid."
+                });
+                return false;
+            }
+
+            if (!re.test(val2)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input lokasi Tidak Valid."
+                });
+                return false;
+            }
+
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",

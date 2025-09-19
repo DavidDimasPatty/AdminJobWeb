@@ -13,7 +13,7 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="namaPerusahaan" class="form-label">Nama Perusahaan</label>
-                    <input type="text" asp-for="namaPerusahaan" class="form-control" required>
+                    <input type="text" id="nama" asp-for="namaPerusahaan" class="form-control" required>
                     <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                 </div>
             </div>
@@ -21,14 +21,14 @@
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="industri" class="form-label">Industri</label>
-                    <input type="text" asp-for="industri" class="form-control" required>
+                    <input type="text" id="industri" asp-for="industri" class="form-control" required>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col mb-6">
                     <label asp-for="lokasi" class="form-label">Lokasi</label>
-                    <textarea asp-for="lokasi" class="form-control" required></textarea>
+                    <textarea asp-for="lokasi" id="lokasi" class="form-control" required></textarea>
                 </div>
             </div>
         </div>
@@ -47,8 +47,52 @@
 </style>
 <script>
     $(document).ready(function () {
+        $("#nama, #lokasi, #industri").on("keypress", function (e) {
+            const char = String.fromCharCode(e.which);
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]$/;
+            if (!re.test(char)) {
+                e.preventDefault();
+            }
+        });
+
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,50}$/;
+            const val1 = $('#nama').val();
+            const val2 = $('#lokasi').val();
+            const val3 = $('#industri').val();
+
+            if (!re.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input Nama Tidak Valid."
+                });
+                return false;
+            }
+
+            if (!re.test(val2)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input lokasi Tidak Valid."
+                });
+                return false;
+            }
+
+            if (!re.test(val3)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input industri Tidak Valid."
+                });
+                return false;
+            }
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",
