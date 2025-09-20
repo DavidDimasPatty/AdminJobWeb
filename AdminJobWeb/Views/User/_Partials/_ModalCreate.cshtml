@@ -3,6 +3,7 @@
 <div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <form asp-action="SendFormAdmin" asp-controller="User" method="post" class="formPop">
+            @Html.AntiForgeryToken()
             <div class="modal-content">
                 <div class="modal-header">
                     <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />

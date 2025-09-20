@@ -5,6 +5,7 @@
 
 <div class="modal-content">
     <form asp-action="EditExperience" asp-controller="Applicant" method="post" class="formPop">
+        @Html.AntiForgeryToken()
         <div class="modal-header">
             <h5 class="modal-title" id="modalLabel">Edit Experience</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

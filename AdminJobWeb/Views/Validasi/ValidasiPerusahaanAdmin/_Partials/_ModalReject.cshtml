@@ -4,6 +4,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form asp-action="RejectAdmin" asp-controller="Validasi" method="post" class="formPop">
+                @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalLabel">Reject Perusahaan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -16,7 +17,7 @@
                     <div class="row">
                         <div class="col mb-6">
                             <label asp-for="alasanReject" class="form-label">Alasan Penolakan</label>
-                            <textarea asp-for="alasanReject" class="form-control" placeholder="Alasan penolakan..."></textarea>
+                            <textarea asp-for="alasanReject" id="alasanReject" class="form-control" placeholder="Alasan penolakan..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -37,6 +38,19 @@
     $(document).ready(function () {
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
+              const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,150}$/;
+              const val1 = $('#alasanReject').val();
+
+            if (!re.test(val1)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Submit",
+                    text: "Input alasan Reject Tidak Valid."
+                });
+                return false;
+            }
+
             Swal.fire({
                 icon: "question",
                 title: "Yakin data sudah lengkap?",

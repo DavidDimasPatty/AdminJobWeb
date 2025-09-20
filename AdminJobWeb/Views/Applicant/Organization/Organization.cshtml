@@ -40,6 +40,7 @@
                                     @if (item.status == "Active")
                                     {
                                         <form asp-action="InactiveOrganization" asp-controller="Applicant" method="post" class="d-inline InactiveOrganization">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-warning btn-sm">
@@ -50,7 +51,8 @@
                                     else
                                     {
                                         <form asp-action="ActivateOrganization" asp-controller="Applicant" method="post" class="d-inline ActivateOrganization">
-                                            <input type="hidden" name="id" value="@item._id" />
+                                            @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bx bx-check me-1"></i> Activate
@@ -61,7 +63,8 @@
                                         <i class="bx bx-edit me-1"></i> Edit
                                     </button>
                                     <form asp-action="DeleteOrganization" asp-controller="Applicant" method="post" class="d-inline DeleteOrganization">
-                                        <input type="hidden" name="id" value="@item._id" />
+                                        @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item._id" />
                                         <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bx bx-stop-circle me-1"></i> Delete

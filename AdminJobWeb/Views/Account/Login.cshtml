@@ -21,7 +21,7 @@
 <body>
     <div class="w-100 h-100 col d-flex justify-content-center align-items-center" style="position:absolute">
         <form method="post" asp-action="Login" asp-controller="Account">
-
+            @Html.AntiForgeryToken()
             <div class="card card-primary">
                 <div class="card-header">
                     <h2>Login Admin</h2>

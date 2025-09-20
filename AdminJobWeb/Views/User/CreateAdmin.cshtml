@@ -21,6 +21,7 @@
 <body>
     <div class="w-100 h-100 col d-flex justify-content-center align-items-center">
         <form method="post" asp-action="CreateAdmin" asp-controller="User" id="formCreate">
+            @Html.AntiForgeryToken()
             <div class="card card-primary">
                 <div class="card-header">
                     <h2>Create New Admin</h2>

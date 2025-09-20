@@ -36,6 +36,7 @@
                                     @if (item.statusAccount == "Active")
                                     {
                                         <form asp-action="BlockApplicant" asp-controller="Applicant" method="post" class="d-inline BlockApplicant">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-warning btn-sm">
@@ -46,6 +47,7 @@
                                     else
                                     {
                                         <form asp-action="ActivateApplicant" asp-controller="Applicant" method="post" class="d-inline ActivateApplicant">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-success btn-sm">
@@ -54,6 +56,7 @@
                                         </form>
                                     }
                                     <form asp-action="DeleteApplicant" asp-controller="Applicant" method="post" class="d-inline DeleteApplicant">
+                                        @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@item._id" />
                                         <input type="hidden" name="link" value="@ViewBag.link" />
                                         <button type="submit" class="btn btn-danger btn-sm">

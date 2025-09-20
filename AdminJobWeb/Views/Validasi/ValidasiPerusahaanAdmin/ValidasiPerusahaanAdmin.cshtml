@@ -72,6 +72,7 @@
                                     @if (item.perusahaanAdmin.status == "Pending")
                                     {
                                         <form asp-action="ApprovalAdmin" asp-controller="Validasi" class="d-inline ApprovalAdmin">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@item.perusahaanAdmin._id" />
                                             <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <input type="hidden" name="idPerusahaan" value="@item.company._id" />

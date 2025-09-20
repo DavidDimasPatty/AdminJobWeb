@@ -10,6 +10,7 @@ using MongoDB.Driver;
 using System.Diagnostics;
 using System.Net.Mail;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace AdminJobWeb.Controllers
 {
@@ -32,6 +33,7 @@ namespace AdminJobWeb.Controllers
         private string certificateCollectionName;
         private string organizationCollectionName;
         private GeneralFunction1 aid;
+        private TracelogApplicant trace;
 
         public ApplicantController(IMongoClient mongoClient, IConfiguration configuration, IMemoryCache cache)
         {
@@ -58,6 +60,7 @@ namespace AdminJobWeb.Controllers
             this._organizationCollection = _database.GetCollection<Organization>(this.organizationCollectionName);
 
             this.aid = new GeneralFunction1();
+            this.trace = new TracelogApplicant();
         }
 
         //Aplicant
@@ -65,7 +68,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Index()
         {
-            if (HttpContext.Session.GetInt32("role") != 1)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 1 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -74,27 +79,31 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Applicant?> applicants = await _applicantCollection.Find(_ => true).ToListAsync();
-                Debug.WriteLine($"Retrieved {applicants.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data applicant :{applicants.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                ViewBag.link =HttpContext.Request.Path;
+                ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View(applicants);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> BlockApplicant(ObjectId id,string link)
+        public async Task<ActionResult> BlockApplicant(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -104,48 +113,43 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Block Applicant, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Applicant>.Filter.Eq(p => p._id, id);
                 var update = Builders<Applicant>.Update.Set(p => p.statusAccount, "Block").Set(p => p.updTime, DateTime.UtcNow);
-
                 var result = await _applicantCollection.UpdateOneAsync(filter, update);
-
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    // return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Block Applicant {id.ToString()} error : Data Applicant Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Block Applicant";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Applicant Tidak Ditemukan";
                     return RedirectToAction("Index");
                 }
 
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
+                trace.WriteLog($"User {adminLogin} success Block Applicant applicant :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Block Applicant";
                 return RedirectToAction("Index");
-                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Block Applicant {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Block Applicant";
                 TempData["icon"] = "error";
-                TempData["text"] =e.Message;
+                TempData["text"] = e.Message;
                 return RedirectToAction("Index");
-                // Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
-
             }
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> ActivateApplicant(ObjectId id,string link)
+        public async Task<ActionResult> ActivateApplicant(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -155,14 +159,14 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Activate Applicant, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Applicant>.Filter.Eq(p => p._id, id);
                 var update = Builders<Applicant>.Update.Set(p => p.statusAccount, "Active").Set(p => p.updTime, DateTime.UtcNow);
-
                 var result = await _applicantCollection.UpdateOneAsync(filter, update);
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Activate Applicant {id.ToString()} error : Data Applicant Tidak Ditemukan, from : {pathUrl}");
                     //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
                     // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Activate Applicant";
@@ -176,10 +180,12 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Activate Applicant";
+                trace.WriteLog($"User {adminLogin} success Activate Applicant :{id.ToString()}, from : {pathUrl}");
                 return RedirectToAction("Index");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Activate Applicant, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Activate Applicant";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -191,11 +197,13 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> DeleteApplicant(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -205,33 +213,29 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Delete Applicant, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Applicant>.Filter.Eq(p => p._id, id);
                 var result = await _applicantCollection.DeleteOneAsync(filter);
 
                 if (result.DeletedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    // return Content("<script>alert('Gagal Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Delete Applicant {id.ToString()} error : Data Applicant Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Delete Applicant";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Applicant Tidak Ditemukan";
                     return RedirectToAction("Index");
                 }
 
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //return Content("<script>alert('Berhasil Delete Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Applicant";
+                trace.WriteLog($"User {adminLogin} success block Delete Applicant :{id.ToString()}, from : {pathUrl}");
                 return RedirectToAction("Index");
 
             }
             catch (Exception e)
             {
-                //Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Delete Applicant, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Delete Applicant";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -244,7 +248,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Experience()
         {
-            if (HttpContext.Session.GetInt32("role") != 2)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 2 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -253,16 +259,19 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Experience?> experiences = await _experienceCollection.Find(_ => true).ToListAsync();
                 Debug.WriteLine($"Retrieved {experiences.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data Experience :{experiences.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
                 ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Experience/Experience", experiences);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -271,6 +280,8 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> AddExperience(string link)
         {
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
             string linkTemp = "/Applicant/Experience";
             if (!aid.checkPrivilegeSession(HttpContext.Session.GetString("username"), linkTemp, link))
             {
@@ -282,12 +293,15 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Experience/AddExperience");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -297,6 +311,7 @@ namespace AdminJobWeb.Controllers
         public async Task<ActionResult> EditExperience(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
             string linkTemp = "/Applicant/Experience";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
@@ -308,15 +323,18 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl} with data : {id.ToString()}");
                 Experience experience = await _experienceCollection.Find(v => v._id == id).FirstOrDefaultAsync();
                 Debug.WriteLine($"Retrieved {experience.ToString()} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data experience :{experience.ToString()}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Experience/EditExperience", experience);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -324,10 +342,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddExperience(Experience data,string link)
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> AddExperience(Experience data, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Experience";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -337,6 +357,41 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Add Experience, {pathUrl} with data : {data.ToString()}");
+
+                var regex = new Regex(
+                      pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                      options: RegexOptions.None,
+                      matchTimeout: TimeSpan.FromSeconds(1)
+                  );
+
+                if (!regex.IsMatch(data.namaPerusahaan ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
+                if (!regex.IsMatch(data.industri ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : industri Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "industri Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
                 var username = HttpContext.Session.GetString("username");
                 var checkEdu = await _experienceCollection
                          .Find(Builders<Experience>.Filter.Or(
@@ -345,11 +400,11 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Add Experience {data.ToString()} error : Nama Experience Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Add Experience";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Experience Sudah Ada";
                     return RedirectToAction("Experience");
-                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var experienceInsert = new Experience
@@ -367,27 +422,27 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Add Experience";
+                trace.WriteLog($"User {adminLogin} success Add Experience :{data.ToString()}, from : {pathUrl}");
                 return RedirectToAction("Experience");
-                //return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed Add Experience, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Add Experience";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
                 return RedirectToAction("Experience");
-
-                //  Debug.WriteLine(ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> EditExperience(Experience data,string link)
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> EditExperience(Experience data, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Experience";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -397,6 +452,41 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Edit Experience, {pathUrl} with data : {data.ToString()}");
+
+                var regex = new Regex(
+      pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+      options: RegexOptions.None,
+      matchTimeout: TimeSpan.FromSeconds(1)
+  );
+
+                if (!regex.IsMatch(data.namaPerusahaan ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
+                if (!regex.IsMatch(data.industri ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : industri Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "industri Tidak Valid";
+                    return RedirectToAction("Experience");
+                }
+
                 var checkEdu = await _experienceCollection
                         .Find(Builders<Experience>.Filter.And(
                             Builders<Experience>.Filter.Eq(p => p.namaPerusahaan, data.namaPerusahaan),
@@ -405,19 +495,18 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Edit Experience {data.ToString()} error : Nama Experience Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Edit Experience";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Experience Sudah Ada";
                     return RedirectToAction("Experience");
-
-                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Experience>.Update.Set(p => p.namaPerusahaan, data.namaPerusahaan).Set(p => p.lokasi, data.lokasi).Set(p => p.industri, data.industri);
                 await _experienceCollection.UpdateOneAsync(filter, update);
-                //return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Edit Experience :{data.ToString()}, from : {pathUrl}");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -426,21 +515,22 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed Edit Experience, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Edit Experience";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
                 return RedirectToAction("Experience");
-                //Debug.WriteLine(ex.Message);
-                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteExperience(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Experience";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -450,17 +540,18 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Delete Experience, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, id);
                 var result = await _experienceCollection.DeleteOneAsync(filter);
-
-
                 if (result.DeletedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Delete Experience {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Delete Experience";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Experience");
                 }
+                trace.WriteLog($"User {adminLogin} success Delete Experience :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Experience";
@@ -468,6 +559,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Delete Experience, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Delete Experience";
                 TempData["icon"] = "error";
                 TempData["text"] = "Gagal Delete Experience";
@@ -476,11 +568,13 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> InactiveExperience(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Experience";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -490,7 +584,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Inactive Experience, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, id);
                 var update = Builders<Experience>.Update.Set(p => p.status, "Inactive");
 
@@ -498,6 +592,7 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Inactive Experience {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Inactive Experience";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -506,10 +601,12 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Inactive Experience";
+                trace.WriteLog($"User {adminLogin} success Inactive Experience :{id.ToString()}, from : {pathUrl}");
                 return RedirectToAction("Experience");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Inactive Experience, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Inactive Experience";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -519,8 +616,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ActivateExperience(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Experience";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -532,7 +631,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Activate Experience, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Experience>.Filter.Eq(p => p._id, id);
                 var update = Builders<Experience>.Update.Set(p => p.status, "Active");
 
@@ -540,11 +639,15 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Activate Experience {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
+
                     TempData["titlePopUp"] = "Gagal Activate Experience";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Experience");
                 }
+                trace.WriteLog($"User {adminLogin} success Activate Experience :{id.ToString()}, from : {pathUrl}");
+
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Activate Experience";
@@ -552,6 +655,8 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Activate Experience, {pathUrl} error : {e.Message}");
+
                 TempData["titlePopUp"] = "Gagal Activate Experience";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -564,7 +669,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Education()
         {
-            if (HttpContext.Session.GetInt32("role") != 2)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 2 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -574,16 +681,18 @@ namespace AdminJobWeb.Controllers
 
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Education?> educations = await _educationCollection.Find(_ => true).ToListAsync();
-                Debug.WriteLine($"Retrieved {educations.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data educations :{educations.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
-                ViewBag.link=HttpContext.Request.Path;
+                ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Education/Education", educations);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -592,6 +701,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> AddEducation(string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -604,12 +714,15 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Education/AddEducation");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -618,6 +731,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> EditEducation(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -630,15 +744,17 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl} with data : {id.ToString()}");
                 Education education = await _educationCollection.Find(v => v._id == id).FirstOrDefaultAsync();
-                Debug.WriteLine($"Retrieved {education.ToString()} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data education :{education.ToString()}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Education/EditEducation", education);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -646,8 +762,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> AddEducation(Education data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -659,6 +777,31 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Add Education, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+              );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Education");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Education");
+                }
+
                 var username = HttpContext.Session.GetString("username");
                 var checkEdu = await _educationCollection
                          .Find(Builders<Education>.Filter.Or(
@@ -667,7 +810,7 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Add Education {data.ToString()} error : Nama  Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Add Education";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Education Sudah Ada";
@@ -689,23 +832,26 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Add Education";
+                trace.WriteLog($"User {adminLogin} success Add Education :{data.ToString()}, from : {pathUrl}");
+
                 return RedirectToAction("Education");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed Add Education, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Add Education";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
                 return RedirectToAction("Education");
-                //Debug.WriteLine(ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> EditEducation(Education data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -717,6 +863,30 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Edit Education, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                      pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                      options: RegexOptions.None,
+                      matchTimeout: TimeSpan.FromSeconds(1)
+                    );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Education");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Education");
+                }
                 var checkEdu = await _educationCollection
                         .Find(Builders<Education>.Filter.And(
                             Builders<Education>.Filter.Eq(p => p.nama, data.nama),
@@ -725,7 +895,7 @@ namespace AdminJobWeb.Controllers
 
                 if (checkEdu > 0)
                 {
-                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Edit Education {data.ToString()} error : Nama  Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Edit Education";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Education Sudah Ada";
@@ -740,10 +910,13 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Edit Education";
+                trace.WriteLog($"User {adminLogin} success Edit Education :{data.ToString()}, from : {pathUrl}");
+
                 return RedirectToAction("Education");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed Edit Education, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Edit Education";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -755,9 +928,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteEducation(ObjectId id, string link)
         {
-
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -769,13 +943,15 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Delete Education, {pathUrl} with data : {id.ToString()}");
+
                 var filter = Builders<Education>.Filter.Eq(p => p._id, id);
                 var result = await _educationCollection.DeleteOneAsync(filter);
 
 
                 if (result.DeletedCount == 0)
                 {
-                    // return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Delete Education {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Delete Education";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -784,13 +960,13 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Education";
+                trace.WriteLog($"User {adminLogin} success Delete Education :{id.ToString()}, from : {pathUrl}");
+
                 return RedirectToAction("Education");
-                // return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                //  Debug.WriteLine(e.Message);
-                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Delete Education, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Add Education";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -801,8 +977,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> InactiveEducation(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -814,7 +992,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Inactive Education, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Education>.Filter.Eq(p => p._id, id);
                 var update = Builders<Education>.Update.Set(p => p.status, "Inactive");
 
@@ -822,8 +1000,7 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    // return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Inactive Education {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Inactive Education";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
@@ -833,25 +1010,25 @@ namespace AdminJobWeb.Controllers
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Inactive Education";
+                trace.WriteLog($"User {adminLogin} success Inactive Education :{id.ToString()}, from : {pathUrl}");
+
                 return RedirectToAction("Education");
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Inactive Education, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Inactive Education";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Education");
-                // Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ActivateEducation(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Education";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -863,6 +1040,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Activate Education, {pathUrl} with data : {id.ToString()}");
 
                 var filter = Builders<Education>.Filter.Eq(p => p._id, id);
                 var update = Builders<Education>.Update.Set(p => p.status, "Active");
@@ -871,29 +1049,25 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Activate Education {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Activate Education";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Education");
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
                 }
+                trace.WriteLog($"User {adminLogin} success Activate Education :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Activate Education";
                 return RedirectToAction("Education");
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Activate Education, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Activate Education";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Education");
-                //   Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                // return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
@@ -903,7 +1077,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Skill()
         {
-            if (HttpContext.Session.GetInt32("role") != 2)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 2 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -912,16 +1088,18 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Skill?> skills = await _skillCollection.Find(_ => true).ToListAsync();
-                Debug.WriteLine($"Retrieved {skills.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data skills :{skills.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
                 ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Skill/Skill", skills);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -930,6 +1108,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> AddSkill(string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -942,12 +1121,15 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Skill/AddSkill");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -956,6 +1138,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> EditSkill(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -968,24 +1151,28 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl} with data : {id.ToString()}");
                 Skill skill = await _skillCollection.Find(v => v._id == id).FirstOrDefaultAsync();
-                Debug.WriteLine($"Retrieved {skill.ToString()} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data skill :{skill.ToString()}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Skill/EditSkill", skill);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<ActionResult> AddSkill(Skill data , string link)
+        public async Task<ActionResult> AddSkill(Skill data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -997,6 +1184,23 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Add Skill, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+                );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Skill");
+                }
+
+
                 var username = HttpContext.Session.GetString("username");
                 var checkSkill = await _skillCollection
                          .Find(Builders<Skill>.Filter.Or(
@@ -1005,7 +1209,7 @@ namespace AdminJobWeb.Controllers
 
                 if (checkSkill > 0)
                 {
-                    //   return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Add Skill {data.ToString()} error : Nama Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Add Skill";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Skill Sudah Ada";
@@ -1022,7 +1226,7 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _skillCollection.InsertOneAsync(SkillInsert);
-                //  return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Add Skill :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Add Skill";
@@ -1030,8 +1234,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine(ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Add Skill, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Add Skill";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -1041,8 +1244,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> EditSkill(Skill data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1054,6 +1259,24 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Edit Skill, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+                );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Skill");
+                }
+
+
+
                 var checkSkill = await _skillCollection
                         .Find(Builders<Skill>.Filter.And(
                             Builders<Skill>.Filter.Eq(p => p.nama, data.nama),
@@ -1062,7 +1285,7 @@ namespace AdminJobWeb.Controllers
 
                 if (checkSkill > 0)
                 {
-                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Edit Skill {data.ToString()} error : Nama Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Edit Skill";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Skill Sudah Ada";
@@ -1073,7 +1296,7 @@ namespace AdminJobWeb.Controllers
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Skill>.Update.Set(p => p.nama, data.nama);
                 await _skillCollection.UpdateOneAsync(filter, update);
-                //  return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Edit Skill :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Edit Skill";
@@ -1081,8 +1304,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                // Debug.WriteLine(ex.Message);
-                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Edit Skill, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Edit Skill";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -1092,10 +1314,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteSkill(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -1105,39 +1329,41 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Delete Skill, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, id);
                 var result = await _skillCollection.DeleteOneAsync(filter);
                 if (result.DeletedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Delete Skill {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Delete Skill";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Skill");
-                    //return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Skill";
+                trace.WriteLog($"User {adminLogin} success Delete Skill :{id.ToString()}, from : {pathUrl}");
                 return RedirectToAction("Skill");
-                //return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Delete Skill, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Delete Skill";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Skill");
-                // Debug.WriteLine(e.Message);
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
             }
         }
 
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> InactiveSkill(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1149,7 +1375,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Inactive Skill, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, id);
                 var update = Builders<Skill>.Update.Set(p => p.status, "Inactive");
 
@@ -1157,16 +1383,13 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Inactive Skill {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Inactive Skill";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Skill");
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
-
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                // return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Inactive Skill :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Inactive Skill";
@@ -1174,9 +1397,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
-                // Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Inactive Skill, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Inactive Skill";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -1186,8 +1407,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ActivateSkill(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Skill";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1199,37 +1422,32 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start Activate Skill, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Skill>.Filter.Eq(p => p._id, id);
                 var update = Builders<Skill>.Update.Set(p => p.status, "Active");
-
                 var result = await _skillCollection.UpdateOneAsync(filter, update);
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Activate Skill {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Activate Skill";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Skill");
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
+                trace.WriteLog($"User {adminLogin} success Activate Skill :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Activate Skill";
                 return RedirectToAction("Skill");
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Activate Skill, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Activate Skill";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Skill");
-                // Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
             }
         }
 
@@ -1238,7 +1456,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Organization()
         {
-            if (HttpContext.Session.GetInt32("role") != 2)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 2 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -1248,17 +1468,18 @@ namespace AdminJobWeb.Controllers
 
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Organization?> organizations = await _organizationCollection.Find(_ => true).ToListAsync();
-                Debug.WriteLine($"Retrieved {organizations.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data organizations :{organizations.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
                 ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Organization/Organization", organizations);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
         }
@@ -1266,6 +1487,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> AddOrganization(string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1278,13 +1500,15 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Organization/AddOrganization");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
         }
@@ -1292,6 +1516,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> EditOrganization(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1304,15 +1529,17 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl} with data : {id.ToString()}");
                 Organization organization = await _organizationCollection.Find(v => v._id == id).FirstOrDefaultAsync();
-                Debug.WriteLine($"Retrieved {organization.ToString()} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data organization :{organization.ToString()}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Organization/EditOrganization", organization);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -1320,8 +1547,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> AddOrganization(Organization data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1333,6 +1562,31 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Add Organization, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+                );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Organization");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Organization");
+                }
+
                 var username = HttpContext.Session.GetString("username");
                 var checkOrganization = await _organizationCollection
                          .Find(Builders<Organization>.Filter.Or(
@@ -1341,12 +1595,12 @@ namespace AdminJobWeb.Controllers
 
                 if (checkOrganization > 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Add Organization {data.ToString()} error : Nama Sudah Ada, from : {pathUrl}");
+
                     TempData["titlePopUp"] = "Gagal Add Organization";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Organization Sudah Ada";
                     return RedirectToAction("Organization");
-
-                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
                 }
 
                 var OrganizationInsert = new Organization
@@ -1361,7 +1615,7 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _organizationCollection.InsertOneAsync(OrganizationInsert);
-                // return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Add Organization :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Add Organization";
@@ -1369,8 +1623,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                //  Debug.WriteLine(ex.Message);
-                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Add Organization, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Add Organization";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -1380,10 +1633,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> EditOrganization(Organization data, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -1393,6 +1648,31 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Edit Organization, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+                );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Organization");
+                }
+
+                if (!regex.IsMatch(data.lokasi ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : lokasi Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "lokasi Tidak Valid";
+                    return RedirectToAction("Organization");
+                }
+
                 var checkOrganization = await _organizationCollection
                         .Find(Builders<Organization>.Filter.And(
                             Builders<Organization>.Filter.Eq(p => p.nama, data.nama),
@@ -1401,19 +1681,19 @@ namespace AdminJobWeb.Controllers
 
                 if (checkOrganization > 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Edit Organization {data.ToString()} error : Nama Sudah Ada, from : {pathUrl}");
+
                     TempData["titlePopUp"] = "Gagal Edit Organization";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Organization Sudah Ada";
                     return RedirectToAction("Organization");
-                    //  return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
                 }
 
                 var username = HttpContext.Session.GetString("username");
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Organization>.Update.Set(p => p.nama, data.nama).Set(p => p.lokasi, data.lokasi);
                 await _organizationCollection.UpdateOneAsync(filter, update);
-                // return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
-
+                trace.WriteLog($"User {adminLogin} success Edit Organization :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Edit Organization";
@@ -1421,8 +1701,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                // Debug.WriteLine(ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Edit Organization, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Edit Organization";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -1433,9 +1712,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteOrganization(ObjectId id, string link)
         {
-
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1447,29 +1727,30 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Delete Organization, {pathUrl} with data : {id.ToString()}");
+
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, id);
                 var result = await _organizationCollection.DeleteOneAsync(filter);
 
 
                 if (result.DeletedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Delete Organization {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
+
                     TempData["titlePopUp"] = "Gagal Delete Organization";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Organization");
-                    //     return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
-
+                trace.WriteLog($"User {adminLogin} success Delete Organization :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Organization";
                 return RedirectToAction("Organization");
-                //  return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
             }
             catch (Exception e)
             {
-                //   Debug.WriteLine(e.Message);
-                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Delete Organization, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Delete Organization";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -1479,8 +1760,10 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> InactiveOrganization(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1492,6 +1775,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Inactive Organization, {pathUrl} with data : {id.ToString()}");
 
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, id);
                 var update = Builders<Organization>.Update.Set(p => p.status, "Inactive");
@@ -1500,39 +1784,40 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Inactive Organization {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
+
                     TempData["titlePopUp"] = "Gagal Inactive Organization";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Organization");
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //  return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
                 }
+                trace.WriteLog($"User {adminLogin} success Inactive Organization :{id.ToString()}, from : {pathUrl}");
 
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Inactive Organization";
                 return RedirectToAction("Organization");
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Inactive Organization, {pathUrl} error : {e.Message}");
+
                 TempData["titlePopUp"] = "Gagal Inactive Organization";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Organization");
-                //  Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
 
             }
         }
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ActivateOrganization(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
+
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Organization";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1544,6 +1829,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Activate Organization, {pathUrl} with data : {id.ToString()}");
 
                 var filter = Builders<Organization>.Filter.Eq(p => p._id, id);
                 var update = Builders<Organization>.Update.Set(p => p.status, "Active");
@@ -1552,17 +1838,15 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Activate Organization {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
 
                     TempData["titlePopUp"] = "Gagal Activate Organization";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Tidak Ditemukan";
                     return RedirectToAction("Organization");
                 }
+                trace.WriteLog($"User {adminLogin} success Activate Organization :{id.ToString()}, from : {pathUrl}");
 
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                // return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -1571,13 +1855,13 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
+                trace.WriteLog($"User {adminLogin} failed Activate Organization, {pathUrl} error : {e.Message}");
+
+
                 TempData["titlePopUp"] = "Gagal Activate Organization";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
                 return RedirectToAction("Organization");
-                //Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
             }
         }
 
@@ -1586,7 +1870,9 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> Certificate()
         {
-            if (HttpContext.Session.GetInt32("role") != 2)
+            string adminLogin = HttpContext.Session.GetString("username")!;
+            string pathUrl = HttpContext.Request.Path;
+            if (HttpContext.Session.GetInt32("role") != 2 || string.IsNullOrEmpty(adminLogin))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
@@ -1596,16 +1882,18 @@ namespace AdminJobWeb.Controllers
 
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
                 List<Certificate?> certificates = await _certificateCollection.Find(_ => true).ToListAsync();
-                Debug.WriteLine($"Retrieved {certificates.Count} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data certificates :{certificates.Count}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
                 ViewBag.link = HttpContext.Request.Path;
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Certificate/Certificate", certificates);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -1614,6 +1902,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> AddCertificate(string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1626,12 +1915,16 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl}");
+
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Certificate/AddCertificate");
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -1640,6 +1933,7 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public async Task<ActionResult> EditCertificate(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1652,15 +1946,17 @@ namespace AdminJobWeb.Controllers
             ViewBag.link = link;
             try
             {
+                trace.WriteLog($"User {adminLogin} start akses {pathUrl} with data : {id.ToString()}");
                 Certificate certificate = await _certificateCollection.Find(v => v._id == id).FirstOrDefaultAsync();
-                Debug.WriteLine($"Retrieved {certificate.ToString()} admin users from the database.");
-
+                trace.WriteLog($"User {adminLogin} success get data certificate :{certificate.ToString()}, from : {pathUrl}");
                 ViewBag.username = HttpContext.Session.GetInt32("username");
                 ViewBag.role = HttpContext.Session.GetInt32("role");
+                trace.WriteLog($"User {adminLogin} success akses {pathUrl}");
                 return View("Certificate/EditCertificate", certificate);
             }
             catch (Exception ex)
             {
+                trace.WriteLog($"User {adminLogin} failed akses {pathUrl} error : {ex.Message}");
                 Debug.WriteLine(ex.Message);
                 return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
             }
@@ -1668,8 +1964,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> AddCertificate(Certificate data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1681,19 +1979,44 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Add Certificate, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                  pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                  options: RegexOptions.None,
+                  matchTimeout: TimeSpan.FromSeconds(1)
+                );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Certificate");
+                }
+
+                if (!regex.IsMatch(data.publisher ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : publisher Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "publisher Tidak Valid";
+                    return RedirectToAction("Certificate");
+                }
                 var username = HttpContext.Session.GetString("username");
                 var checkCertificate = await _certificateCollection
-                         .Find(Builders<Certificate>.Filter.Or(
-                             Builders<Certificate>.Filter.Eq(p => p.nama, data.nama)))
+                         .Find(Builders<Certificate>.Filter.And(
+                             Builders<Certificate>.Filter.Eq(p => p.nama, data.nama),
+                             Builders<Certificate>.Filter.Eq(p => p.publisher, data.publisher)))
                         .CountDocumentsAsync();
 
                 if (checkCertificate > 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Add Certificate {data.ToString()} error : Nama dan publisher Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Add Certificate";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Certificate Sudah Ada";
                     return RedirectToAction("Certificate");
-                    // return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Skill';</script>", "text/html");
                 }
 
                 var CertificateInsert = new Certificate
@@ -1708,7 +2031,7 @@ namespace AdminJobWeb.Controllers
                 };
 
                 await _certificateCollection.InsertOneAsync(CertificateInsert);
-                //    return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Add Certificate :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Add Certificate";
@@ -1716,8 +2039,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine(ex.Message);
-                //return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Skill';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Add Certificate, {pathUrl} error : {ex.Message}");
                 TempData["titlePopUp"] = "Gagal Add Certificate";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -1727,8 +2049,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> EditCertificate(Certificate data, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1740,6 +2064,31 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Edit Certificate, {pathUrl} with data : {data.ToString()}");
+                var regex = new Regex(
+                pattern: @"^[A-Za-z0-9 _\-\(\)/\\]{0,150}$",
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(1)
+              );
+
+                if (!regex.IsMatch(data.nama ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : Nama Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "Nama Tidak Valid";
+                    return RedirectToAction("Certificate");
+                }
+
+                if (!regex.IsMatch(data.publisher ?? string.Empty))
+                {
+                    trace.WriteLog($"User {adminLogin} failed validation data {data.ToString()} error : publisher Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "publisher Tidak Valid";
+                    return RedirectToAction("Certificate");
+                }
+
                 var checkCertificate = await _certificateCollection
                         .Find(Builders<Certificate>.Filter.And(
                             Builders<Certificate>.Filter.Eq(p => p.nama, data.nama),
@@ -1749,7 +2098,7 @@ namespace AdminJobWeb.Controllers
 
                 if (checkCertificate > 0)
                 {
-                    //return Content($"<script>alert('Nama Education Sudah Ada');window.location.href='/Applicant/Education';</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Edit Certificate {data.ToString()} error : Nama dan publisher Sudah Ada, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Edit Certificate";
                     TempData["icon"] = "error";
                     TempData["text"] = "Nama Certificate Sudah Ada";
@@ -1760,7 +2109,7 @@ namespace AdminJobWeb.Controllers
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, data._id);
                 var update = Builders<Certificate>.Update.Set(p => p.nama, data.nama).Set(p => p.publisher, data.publisher);
                 await _certificateCollection.UpdateOneAsync(filter, update);
-                //    return Content($"<script>alert('Success Add Education');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Edit Certificate :{data.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Edit Certificate";
@@ -1768,9 +2117,9 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception ex)
             {
-                //  Debug.WriteLine(ex.Message);
-                // return Content($"<script>alert('{ex.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
-                TempData["titlePopUp"] = "Gagal Add Certificate";
+
+                trace.WriteLog($"User {adminLogin} failed Edit Certificate, {pathUrl} error : {ex.Message}");
+                TempData["titlePopUp"] = "Gagal Edit Certificate";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
                 return RedirectToAction("Certificate");
@@ -1779,8 +2128,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteCertificate(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1792,20 +2143,22 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start Delete Certificate, {pathUrl} with data : {id.ToString()}");
+
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, id);
                 var result = await _certificateCollection.DeleteOneAsync(filter);
 
 
                 if (result.DeletedCount == 0)
                 {
+                    trace.WriteLog($"User {adminLogin} failed Delete Certificate {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Delete Certificate";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Certificate Tidak Ditemukan";
                     return RedirectToAction("Certificate");
-                    // return Content("<script>alert('Gagal Delete Surveyer!');window.location.href='/Surveyer/Index'</script>", "text/html");
                 }
 
-                // return Content("<script>alert('Berhasil Delete Surveyer!');window.location.href='/Applicant/Education'</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Delete Certificate :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Delete Certificate";
@@ -1813,8 +2166,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
-                //   Debug.WriteLine(e.Message);
-                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Education';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Delete Certificate, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Delete Certificate";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -1824,8 +2176,10 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> InactiveCertificate(ObjectId id, string link)
         {
+            string pathUrl = HttpContext.Request.Path;
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -1837,7 +2191,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
-
+                trace.WriteLog($"User {adminLogin} start  Inactive Certificate, {pathUrl} with data : {id.ToString()}");
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, id);
                 var update = Builders<Certificate>.Update.Set(p => p.status, "Inactive");
 
@@ -1845,16 +2199,13 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    //return Content("<script>alert('Gagal Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Inactive Certificate {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Inactive Certificate";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Certificate Tidak Ditemukan";
                     return RedirectToAction("Certificate");
                 }
-
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //return Content("<script>alert('Berhasil Block Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Inactive Certificate :{id.ToString()}, from : {pathUrl}");
 
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
@@ -1863,9 +2214,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
-                //Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Inactive Certificate, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Inactive Certificate";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;
@@ -1875,10 +2224,12 @@ namespace AdminJobWeb.Controllers
 
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ActivateCertificate(ObjectId id, string link)
         {
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/Applicant/Certificate";
+            string pathUrl = HttpContext.Request.Path;
             if (!aid.checkPrivilegeSession(adminLogin, linkTemp, link))
             {
                 TempData["titlePopUp"] = "Gagal Akses";
@@ -1888,6 +2239,7 @@ namespace AdminJobWeb.Controllers
             }
             try
             {
+                trace.WriteLog($"User {adminLogin} start  Activate Certificate, {pathUrl} with data : {id.ToString()}");
 
                 var filter = Builders<Certificate>.Filter.Eq(p => p._id, id);
                 var update = Builders<Certificate>.Update.Set(p => p.status, "Active");
@@ -1896,16 +2248,13 @@ namespace AdminJobWeb.Controllers
 
                 if (result.ModifiedCount == 0)
                 {
-                    //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Gagal Block Surveyer");
-                    // return Content("<script>alert('Gagal Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                    trace.WriteLog($"User {adminLogin} failed Activate Certificate {id.ToString()} error : Data Tidak Ditemukan, from : {pathUrl}");
                     TempData["titlePopUp"] = "Gagal Active Certificate";
                     TempData["icon"] = "error";
                     TempData["text"] = "Data Certificate Tidak Ditemukan";
                     return RedirectToAction("Certificate");
                 }
-
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Berhasil Block Surveyer");
-                //   return Content("<script>alert('Berhasil Activate Applicant!');window.location.href='/Applicant/Index'</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} success Activate Certificate :{id.ToString()}, from : {pathUrl}");
                 TempData["titlePopUp"] = "Success";
                 TempData["icon"] = "success";
                 TempData["text"] = "Berhasil Active Certificate";
@@ -1913,9 +2262,7 @@ namespace AdminJobWeb.Controllers
             }
             catch (Exception e)
             {
-                //   Debug.WriteLine(e);
-                //_tracelogSurveyer.WriteLog($"User : {adminLogin}, Failed Block Surveyer, Reason : {e.Message}");
-                //  return Content($"<script>alert('{e.Message}');window.location.href='/Applicant/Index';</script>", "text/html");
+                trace.WriteLog($"User {adminLogin} failed Activate Certificate, {pathUrl} error : {e.Message}");
                 TempData["titlePopUp"] = "Gagal Active Certificate";
                 TempData["icon"] = "error";
                 TempData["text"] = e.Message;

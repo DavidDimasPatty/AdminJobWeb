@@ -100,6 +100,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> Login(string username, string password)
         {
             try
@@ -398,6 +399,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> ResetPassword(string username, string email)
         {
             try
@@ -560,6 +562,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> CreateResetPassword(string username, string password, string passwordRet, string key)
         {
             try
@@ -806,6 +809,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> EditPassword(string passwordNow, string password, string passwordRet)
         {
             try

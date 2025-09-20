@@ -12,6 +12,8 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.RegularExpressions;
 
 namespace AdminJobWeb.Controllers
 {
@@ -75,15 +77,12 @@ namespace AdminJobWeb.Controllers
             {
                 _tracelogUser.WriteLog("UserController Index view called");
 
-                // Retrieve all admin users from the database
                 var admins = _adminCollection.Find(_ => true).ToList();
 
                 if (admins.Count == 0)
                 {
                     _tracelogUser.WriteLog("No admin users found in the database.");
-                    // Debug.WriteLine("No admin users found in the database.");
-                    // return Content("<script>alert('No admin users found in the database.');window.location.href='/Home/Index';</script>", "text/html");
-                    TempData["titlePopUp"] = "Gagal Akses";
+                      TempData["titlePopUp"] = "Gagal Akses";
                     TempData["icon"] = "error";
                     TempData["text"] = "No admin users found in the database.";
                     return RedirectToAction("Index","Home");
@@ -101,7 +100,6 @@ namespace AdminJobWeb.Controllers
             {
                 Debug.WriteLine(ex.Message);
                 _tracelogUser.WriteLog("Error in UserController Index: " + ex.Message);
-                // return Content($"<script>alert('{ex.Message}');window.location.href='/Home/Index';</script>", "text/html");
                 TempData["titlePopUp"] = "Gagal Akses";
                 TempData["icon"] = "error";
                 TempData["text"] = ex.Message;
@@ -112,23 +110,16 @@ namespace AdminJobWeb.Controllers
         [HttpGet]
         public IActionResult SendFormAdmin()
         {
-            //string adminLogin = HttpContext.Session.GetString("username")!;
-            //string linkTemp = "/User";
-            //if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
-            //{
-            //    TempData["titlePopUp"] = "Gagal Akses";
-            //    TempData["icon"] = "error";
-            //    TempData["text"] = "Anda Tidak Memiliki Akses!";
-            //    return RedirectToAction("Index", "Home");
-            //}
-            //ViewBag.link = link;
 
             return PartialView("_Partials/_ModalCreate");
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> SendFormAdmin(admin objData,string link)
         {
+            string pathUrl = HttpContext.Request.Path;
+
             string adminLogin = HttpContext.Session.GetString("username")!;
             string linkTemp = "/User";
             if (!_func.checkPrivilegeSession(adminLogin, linkTemp, link))
@@ -141,6 +132,22 @@ namespace AdminJobWeb.Controllers
 
             try
             {
+
+                var regex2 = new Regex(
+                  @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$",
+                RegexOptions.None,
+                  TimeSpan.FromSeconds(1)
+                );
+
+
+                if (!regex2.IsMatch(objData.email ?? string.Empty))
+                {
+                    _tracelogUser.WriteLog($"User {adminLogin} failed validation data {objData.ToString()} error : email Tidak Valid, from : {pathUrl}");
+                    TempData["titlePopUp"] = "Gagal Add Data";
+                    TempData["icon"] = "error";
+                    TempData["text"] = "email Tidak Valid";
+                    return RedirectToAction("Index");
+                }
                 var existingEmailAdmin = await _adminCollection
                     .Find(Builders<admin>.Filter.Eq(p => p.email, objData.email))
                     .CountDocumentsAsync();
@@ -160,7 +167,6 @@ namespace AdminJobWeb.Controllers
                 if (existingEmailAdmin + existingEmailSurveyor + existingEmailApplicant + existingEmailCompany > 0)
                 {
                     _tracelogUser.WriteLog($"User : {adminLogin}, Email sudah memiliki akun!");
-                    //  return Content($"<script>alert('Email sudah memiliki akun!');window.location.href='/User/Index'</script>", "text/html");
                     TempData["titlePopUp"] = "Gagal Send Form Admin";
                     TempData["icon"] = "error";
                     TempData["text"] = "Email sudah memiliki akun!";
@@ -291,6 +297,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> CreateAdmin([FromForm] admin dataObj, string key, string password, string passwordRet)
         {
@@ -426,6 +433,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> ApprovalNewAdmin(string id,string link)
         {
@@ -478,6 +486,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> RejectNewAdmin(string id,string link)
         {
@@ -530,6 +539,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> BlockAdmin(string id,string link)
         {
@@ -582,6 +592,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> ActivateAdmin(string id,string link)
         {
@@ -634,6 +645,7 @@ namespace AdminJobWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<ActionResult> DeleteAdmin(string id,string link)
         {

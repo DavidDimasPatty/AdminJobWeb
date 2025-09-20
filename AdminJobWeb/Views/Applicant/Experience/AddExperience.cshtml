@@ -5,6 +5,7 @@
 
 <div class="modal-content">
     <form asp-action="AddExperience" asp-controller="Applicant" method="post" class="formPop">
+        @Html.AntiForgeryToken()
         <div class="modal-header">
             <h5 class="modal-title" id="modalLabel">Add New Experience</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -58,7 +59,7 @@
         $(".formPop").on("submit", function (e) {
             e.preventDefault();
 
-            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,50}$/;
+            const re = /^[A-Za-z0-9 _\-\(\)\/\\]{0,150}$/;
             const val1 = $('#nama').val();
             const val2 = $('#lokasi').val();
             const val3 = $('#industri').val();

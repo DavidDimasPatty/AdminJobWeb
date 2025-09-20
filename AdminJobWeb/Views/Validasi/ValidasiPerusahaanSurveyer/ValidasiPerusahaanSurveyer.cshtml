@@ -71,6 +71,7 @@
                                         {
                                             <td>
                                                 <form asp-action="ProcessSurveyer" asp-controller="Validasi" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
                                                     <input type="hidden" name="id" value="@item._id" />
                                                     <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
                                                     <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
@@ -89,7 +90,8 @@
                                     {
                                         <td>
                                             <form asp-action="ApprovalSurveyer" asp-controller="Validasi" method="post" class="d-inline ApprovalSurveyer">
-                                                <input type="hidden" name="id" value="@item._id" />
+                                                @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item._id" />
                                                 <input type="hidden" name="idPerusahaan" value="@item.idPerusahaan" />
                                                 <input type="hidden" name="idSurveyer" value="@item.idSurveyer" />
                                                 <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />

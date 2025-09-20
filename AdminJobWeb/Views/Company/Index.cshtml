@@ -36,7 +36,8 @@
                                     @if (item.statusAccount == "Active")
                                     {
                                         <form asp-action="BlockCompany" asp-controller="Company" method="post" class="d-inline BlockCompany">
-                                            <input type="hidden" name="id" value="@item._id" />
+                                            @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-warning btn-sm">
                                                 <i class="bx bx-block me-1"></i> Block
@@ -46,7 +47,8 @@
                                     else if (item.statusAccount == "Block")
                                     {
                                         <form asp-action="ActivateCompany" asp-controller="Company" method="post" class="d-inline ActivateCompany">
-                                            <input type="hidden" name="id" value="@item._id" />
+                                            @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item._id" />
                                             <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bx bx-check me-1"></i> Activate
@@ -58,7 +60,8 @@
                                         <label class="text-warning text-wrap w-50">Menunggu Validasi</label>
                                     }
                                     <form asp-action="DeleteCompany" asp-controller="Company" method="post" class="d-inline DeleteCompany">
-                                        <input type="hidden" name="id" value="@item._id" />
+                                        @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item._id" />
                                         <input type="hidden" name="link" class="form-control" value="@ViewBag.link" />
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bx bx-stop-circle me-1"></i> Delete
